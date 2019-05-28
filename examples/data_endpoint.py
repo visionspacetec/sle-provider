@@ -1,0 +1,93 @@
+import json
+import socket
+import datetime as dt
+import time
+from bitstring import BitArray
+from slecommon import frames
+
+utc_time = str(dt.datetime.utcnow())
+HOST = 'localhost'
+PORT = 55555
+
+data = '00310404181d000000000000000000000000000000000000000000000000000000000008143d2e0039000319242ba6f1e8f50001' \
+       '00000000000f0000000001e000000078000000007fff7fffff7fffffff000500010000000000000000000000004b20083429b90067' \
+       '000319242ba6f1e8f500040000000000000000000000000000000000e800e8f500e8f5c200000000e80000e8f50000e8f5c2000000' \
+       '000000e8000000e8f5000000e8f5c2242ba6f1242ba6f1e8242ba6f1e8f5242ba6f1e8f5c2000000000000000000000000db810814' \
+       '3d2f004b000319242ba6f1e8f500020000000000020000000000000000000000000000000000000000000000000000004049000000' \
+       '00000000000000000000000000000000000000000000000000798d07ff000000390000000000000000000000000000000000000000' \
+       '000000000000000000000000000000000000000000000000000000000000000000000000000007ff00000039000000000000000000' \
+       '0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007ff0000' \
+       '0039000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' \
+       '0000000000000007ff0000003900000000000000000000000000000000000000000000000000000000000000000000000000000000' \
+       '00000000000000000000000000000000000007ff000000390000000000000000000000000000000000000000000000000000000000' \
+       '000000000000000000000000000000000000000000000000000000000007ff00000039000000000000000000000000000000000000' \
+       '0000000000000000000000000000000000000000000000000000000000000000000000000000000007ff0000003900000000000000' \
+       '00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007ff' \
+       '0000003900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' \
+       '00000000000000000007ff000000390000000000000000000000000000000000000000000000000000000000000000000000000000' \
+       '000000000000000000000000000000000000000007ff00000039000000000000000000000000000000000000000000000000000000' \
+       '0000000000000000000000000000000000000000000000000000000000000007ff0000003900000000000000000000000000000000' \
+       '00000000000000000000000000000000000000000000000000000000000000000000000000000000000007ff000000390000000000' \
+       '0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' \
+       '07ff00000039000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001fc00' \
+       '00916a'
+
+msg = {'earthReceiveTime': utc_time, 'antennaId': 'VST', 'deliveredFrameQuality': 'good', 'data': data}
+msg_processed = json.dumps(msg).encode()
+
+notification1 = {'notification':
+                     {'endOfData': None}}
+notification2 = {'notification':
+                     {'lossFrameSync':
+                          {'time': str(utc_time),
+                           'carrierLockStatus': 'inLock',
+                           'subcarrierLockStatus': 'inLock',
+                           'symbolSyncLockStatus': 'inLock'}}}
+notification3 = {'notification':
+                     {'productionStatusChange': 'running'}}
+notification4 = {'notification':
+                     {'excessiveDataBacklog': None}}
+
+tm_frame = frames.TelemetryTransferFrame()
+tm_frame.length = 1115
+tm_frame.has_fecf = True
+tm_frame.is_idle = True
+tm_frame['version'] = 0
+tm_frame['spacecraft_id'] = 3
+tm_frame['virtual_channel_id'] = 7
+tm_frame['ocf_flag'] = True
+tm_frame['master_chan_frame_count'] = 0
+tm_frame['virtual_chan_frame_count'] = 0
+tm_frame['sec_header_flag'] = False
+tm_frame['sync_flag'] = False
+tm_frame['pkt_order_flag'] = False
+tm_frame['seg_len_id'] = 3
+tm_frame['first_hdr_ptr'] = int('11111111110', 2)
+tm_frame['ocf'] = BitArray('0x01000000')
+
+print("Starting Packet Generation")
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.connect((HOST, PORT))
+    print("Connected to the Server")
+
+    # s.sendall(json.dumps(notification3).encode())
+
+    while True:
+        # Data rate measurement: sudo tcptrack -i lo
+        
+        # With frame generation
+        msg['earthReceiveTime'] = str(dt.datetime.utcnow())
+        msg['data'] = tm_frame.encode()
+        # print(msg['data'])
+        s.sendall(json.dumps(msg).encode())
+        tm_frame['master_chan_frame_count'] = (tm_frame['master_chan_frame_count'] + 1) % 256
+        tm_frame['virtual_chan_frame_count'] = (tm_frame['virtual_chan_frame_count'] + 1) % 256
+        time.sleep(10)
+
+        '''
+        # Without frame generation
+        s.sendall(msg_processed)
+        time.sleep(0.000)
+        '''
+
