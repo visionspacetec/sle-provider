@@ -28,6 +28,9 @@ class DataProtocol(protocol.Protocol):
             data = (self._rem + data.decode()).encode()
             self._rem = ''
             pdu = json.loads(data)
+            if 'data' not in pdu and 'notification' not in pdu:
+                self._rem = data[:-1].decode()
+                return
             self._pdu_handler(pdu)
         except json.JSONDecodeError:
             buffer = data.decode()
@@ -42,6 +45,12 @@ class DataProtocol(protocol.Protocol):
                 sub = sub.encode()
                 try:
                     pdu = json.loads(sub)
+                    if 'data' not in pdu and 'notification' not in pdu:
+                        # print(buffer_split)
+                        # print(sub)
+                        # if sub is buffer_split[-1]:
+                        # self._rem = sub[:-1].decode()
+                        return
                 except json.JSONDecodeError:
                     self._rem = sub[:-1].decode()
                     return
@@ -57,6 +66,7 @@ class DataProtocol(protocol.Protocol):
             self._notification_handler(pdu)
         else:
             logger.error("Neither data nor notification in pdu: {}{}".format(pdu, opt))
+            self._rem = ''
 
     def _data_handler(self, pdu):
         self.factory.container._annotated_frame_handler(pdu['earthReceiveTime'],

@@ -83,11 +83,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.sendall(json.dumps(msg).encode())
         tm_frame['master_chan_frame_count'] = (tm_frame['master_chan_frame_count'] + 1) % 256
         tm_frame['virtual_chan_frame_count'] = (tm_frame['virtual_chan_frame_count'] + 1) % 256
-        time.sleep(10)
+        time.sleep(2)
 
         '''
         # Without frame generation
         s.sendall(msg_processed)
         time.sleep(0.000)
         '''
-
