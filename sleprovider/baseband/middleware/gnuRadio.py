@@ -3,15 +3,15 @@ import json
 import datetime as dt
 
 
-class GnuRadioClientJson(protocol.Protocol):
+class JsonClient(protocol.Protocol):
 
     def connectionMade(self):
         try:
-            print("GNU Radio connection made")
+            print("Connection to the SLE provider successful")
             self._rem = ''
             self.factory.container.users.append(self)
         except Exception as e:
-            print("Not able to connect to GNU Radio: {}".format(e))
+            print("Not able to connect to the SLE provider: {}".format(e))
             self.disconnect()
 
     def connectionLost(self, reason):
@@ -42,10 +42,10 @@ class GnuRadioClientJson(protocol.Protocol):
                     return
                 self._pdu_handler(pdu)
 
-    def send_message(self, data):
+    def send_message(self, data, frame_quality):
         msg = {'earthReceiveTime': str(dt.datetime.utcnow()),
-               'antennaId': 'VST',
-               'deliveredFrameQuality': 'good',
+               'antennaId': self.factory.container.antenna_id,
+               'deliveredFrameQuality': frame_quality,
                'data': data.hex()}
         self.transport.write(json.dumps(msg).encode())
 
@@ -54,7 +54,7 @@ class GnuRadioClientJson(protocol.Protocol):
         self.transport.loseConnection()
 
 
-class GnuRadioFactory(protocol.ClientFactory):
+class JsonClientFactory(protocol.ClientFactory):
 
     def clientConnectionFailed(self, connector, reason):
         print("SLE server connection failed - goodbye!")
@@ -64,37 +64,47 @@ class GnuRadioFactory(protocol.ClientFactory):
         print("Connection to the SLE server lost!")
 
     def buildProtocol(self, addr):
-        p = GnuRadioClientJson()
+        p = JsonClient()
         p.factory = self
         return p
 
 
-class GnuRadioClientUdp(protocol.DatagramProtocol):
+class UdpProtocol(protocol.DatagramProtocol):
 
-    def __init__(self, container):
+    def __init__(self, container, frame_quality):
         self.container = container
+        self.frame_quality = frame_quality
 
     def datagramReceived(self, datagram, addr):
-        # host, port = addr
-        # print("Received from {} on port {}: {}".format(host, port, datagram))
-        self.container.users[0].send_message(datagram)
+        if self.container.print_frames:
+            print(datagram.hex())
+        self.container.users[0].send_message(datagram, self.frame_quality)
 
 
-class GnuRadioClient:
+class GnuRadioMiddleware:
 
-    def __init__(self, port_gnu_radio, host_sle, port_sle):
-        f = GnuRadioFactory()
+    def __init__(self, port_good_frames, port_erred_frames, host_sle, port_sle, antenna_id, print_frames):
+        f = JsonClientFactory()
         f.container = self
+        self.antenna_id = antenna_id
+        self.print_frames = print_frames
         self.connectors = {}
         self.users = []
-        self.connectors.update({'json': reactor.connectTCP(host_sle, port_sle, f)})
-        self.connectors.update({'udp': reactor.listenUDP(port_gnu_radio, GnuRadioClientUdp(self))})
+        self.connectors.update({'jsonClient': reactor.connectTCP(host_sle,
+                                                                 port_sle,
+                                                                 f)})
+        if port_good_frames is not None:
+            self.connectors.update({'udpGoodFrames': reactor.listenUDP(port_good_frames, UdpProtocol(self, 'good'))})
+        if port_erred_frames is not None:
+            self.connectors.update({'udpErredFrames': reactor.listenUDP(port_erred_frames, UdpProtocol(self, 'erred'))})
 
     def start_reactor(self):
-        print('GNU Radio client is now running!')
+        print("GNU Radio middleware is now running!")
+        if self.print_frames:
+            print("Print of UDP frames enabled")
         reactor.run()
 
 
-def main(port_gnu_radio, host_sle, port_sle):
-    client = GnuRadioClient(port_gnu_radio, host_sle, port_sle)
+def main(port_good_frames, port_erred_frames, host_sle, port_sle, antenna_id, print_frames=False):
+    client = GnuRadioMiddleware(port_good_frames, port_erred_frames, host_sle, port_sle, antenna_id, print_frames)
     client.start_reactor()

@@ -79,12 +79,12 @@ class SleProvider(object):
                                'requested_frame_quality': 'allFrames',
                                'state': 'unbound'}}
 
-    def initialize_server(self, name, server_type, port):
+    def initialize_server(self, name, server_type, port, print_frames=False):
         if name not in self.servers:
             if server_type == 'sle_protocol':
-                self.servers[name] = CommonProviderProtocolFactory(self)
+                self.servers[name] = CommonProviderProtocolFactory(self, print_frames)
             elif server_type == 'json_data_protocol':
-                self.servers[name] = DataProviderProtocolFactory(self)
+                self.servers[name] = DataProviderProtocolFactory(self, print_frames)
             elif server_type in ['https_rest_protocol', 'http_rest_protocol']:
                 checkers = [FilePasswordDB('http.password', delim=b'=', hash=check_hashed_password)]
                 realm = Realm()

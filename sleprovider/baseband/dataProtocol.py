@@ -60,6 +60,8 @@ class DataProtocol(protocol.Protocol):
             self.disconnect()
 
     def _pdu_handler(self, pdu, opt=False):
+        if self.print_frames is True:
+            logger.debug(pdu)
         if 'data' in pdu:
             self._data_handler(pdu)
         elif 'notification' in pdu:
