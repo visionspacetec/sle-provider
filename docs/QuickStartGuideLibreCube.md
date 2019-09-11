@@ -4,7 +4,7 @@
 
 # Setup the LibreCube SLE User
 
-The LibreCube **[python-sle](https://gitlab.com/librecube/prototypes/python-sle)** client can be used in combination with the VisionSpace sle-provider.
+The LibreCube **[python-sle-user](https://gitlab.com/librecube/lib/python-sle-user)** client can be used in combination with the VisionSpace sle-provider.
 
 This guide shows you how to set it up and run an example.
 
@@ -13,11 +13,10 @@ This guide shows you how to set it up and run an example.
 Before installing the user, make sure you successfully installed the **[sle-provider](https://github.com/visionspacetec/sle-provider#installation--usage)**.
 
 ```bash
-git clone https://gitlab.com/librecube/prototypes/python-sle.git
-cd python-sle
+git clone https://gitlab.com/librecube/lib/python-sle-user.git
+cd python-sle-user
 virtualenv -p python3 venv
 source venv/bin/activate
-pip install -r requirements.txt
 pip install -e .
 ```
 
@@ -25,7 +24,7 @@ pip install -e .
 
 ### Start the SLE Provider
 
-*Be aware that the sle-provider is not installed in the same environment as the python-sle package!*
+*Be aware that the sle-provider is not installed in the same environment as the python-sle-user package!*
 
 * Start the sle-provider example configuration:
 
@@ -42,18 +41,28 @@ raf.schedule_status_report()
 raf.get_parameter('requestedFrameQuality')
 ```
 
+The configuration file *sle-user.ini* from the python-sle-user package has to be filled:
+
+```bash
+[Raf]
+RAF_INST_ID = sagr=1.spack=VST-PASS0001.rsl-fg=1.raf=onlt1
+SLE_PROVIDER_HOSTNAME = localhost
+SLE_PROVIDER_TM_PORT = 55529
+INITIATOR_ID = SLE_USER
+RESPONDER_ID = SLE_PROVIDER
+PASSWORD =
+PEER_PASSWORD =
+```
+
+In python-sle-user/examples/raf.py change the authentication option in line 11 from bind to none:
+
+```bash
+auth_level='none'
+```
+
 ```bash
 # Activate the virtual environment
 source ~/python-sle/venv/bin/activate
-
-export RAF_INST_ID="sagr=1.spack=VST-PASS0001.rsl-fg=1.raf=onlt1"
-export SLE_PROVIDER_HOSTNAME="localhost"
-export SLE_PROVIDER_TM_PORT=55529
-export INITIATOR_ID="SLE_USER"
-export RESPONDER_ID="SLE_PROVIDER"
-export PASSWORD=""
-export PEER_PASSWORD=""
-
 python ~/python-sle/examples/raf_user.py
 ```
 
