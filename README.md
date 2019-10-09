@@ -26,6 +26,15 @@ It includes an interface for the Space Link Extension protocol, a management ser
 - (planned) Offline frame delivery
 
 ## Installation & Usage
+
+When installing on a Raspberry Pi, install these packages before the next steps:
+
+```bash
+sudo apt-get install libffi-dev libssl-dev
+```
+
+If you want to configure the SLE Provider at runtime install our **[sle-management-client](https://github.com/visionspacetec/sle-management-client)**.
+
 ### Setuptools
 
 Install the **[sle-common](https://github.com/visionspacetec/sle-common)** package first, before installing the sle-provider!
@@ -34,7 +43,14 @@ Install the **[sle-common](https://github.com/visionspacetec/sle-common)** packa
 python3 setup.py install --user
 ```
 
-If you want to configure the SLE Provider at runtime install our **[sle-management-client](https://github.com/visionspacetec/sle-management-client)**.
+### Virtual environment
+
+```bash
+cd sle-provider
+virtualenv -p python3 venv
+source venv/bin/activate
+pip install -e .
+```
 
 ## Getting started
 

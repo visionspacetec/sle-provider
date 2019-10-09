@@ -10,7 +10,7 @@ This guide shows you how to set it up and run an example.
 
 ## Installation
 
-Before installing the user, make sure you successfully installed the **[sle-provider](https://github.com/visionspacetec/sle-provider#installation--usage)**.
+Before installing the user, make sure you successfully installed the **[sle-provider](https://github.com/visionspacetec/sle-provider#installation--usage)**, then run:
 
 ```bash
 git clone https://gitlab.com/librecube/lib/python-sle-user.git
@@ -24,7 +24,7 @@ pip install -e .
 
 ### Start the SLE Provider
 
-*Be aware that the sle-provider is not installed in the same environment as the python-sle-user package!*
+*Be aware that the sle-provider might not be installed in the same environment as the python-sle-user package!*
 
 * Start the sle-provider example configuration:
 
@@ -34,30 +34,34 @@ python3 ~/sle-provider/examples/start_provider.py
 
 * Start the python-sle Return All Frames example:
 
-**Currently you have to comment out the following lines in raf_user.py:**
+**Currently you have to comment out the lines 48-52 in raf.py:**
+
 ```python
-raf.schedule_status_report()
-# and
-raf.get_parameter('requestedFrameQuality')
-```
-
-The configuration file *sle-user.ini* from the python-sle-user package has to be filled:
-
-```bash
-[Raf]
-RAF_INST_ID = sagr=1.spack=VST-PASS0001.rsl-fg=1.raf=onlt1
-SLE_PROVIDER_HOSTNAME = localhost
-SLE_PROVIDER_TM_PORT = 55529
-INITIATOR_ID = SLE_USER
-RESPONDER_ID = SLE_PROVIDER
-PASSWORD =
-PEER_PASSWORD =
+# if raf.state != 'active':
+# print("Failed to start data transfer. Aborting...")
+# raf.unbind(reason='other')
+# time.sleep(2)
+# return
 ```
 
 In python-sle-user/examples/raf.py change the authentication option in line 11 from bind to none:
 
 ```bash
 auth_level='none'
+```
+
+The configuration file *config.py* in the examples folder from the python-sle-user package has to be filled with:
+
+```python
+config = {
+"RAF":{
+"RAF_INST_ID": "sagr=1.spack-VST-PASS0001.rsl-fg=1.raf=ontl1",
+"SLE_PROVIDER_HOSTNAME": "localhost",
+"SLE_PROVIDER_TM_PORT": "55529",
+"INITIATOR_ID": "SLE_USER",
+"RESPONDER_ID": "SLE_PROVIDER",
+"PASSWORD": "",
+"PEER_PASSWORD": ""}}
 ```
 
 ```bash
