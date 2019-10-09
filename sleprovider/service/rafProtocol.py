@@ -352,8 +352,10 @@ class RafProtocol(CommonProtocol):
             raise Exception('Bad Frame')
         if self.print_frames is True:
             logger.debug(frame_or_notification)
-        if len(self._transfer_buffer) < self.factory.container.si_config[self._inst_id]['transfer_buffer_size']:
-            self._transfer_buffer[len(self._transfer_buffer)] = frame_or_notification
+        if len(self._transfer_buffer) < (self.factory.container.si_config[self._inst_id]['transfer_buffer_size']):
+            self._transfer_buffer.setComponentByPosition(len(self._transfer_buffer),
+                                                         frame_or_notification,
+                                                         matchTags=False)
         else:
             pass
             # ToDo generate dropped notification
