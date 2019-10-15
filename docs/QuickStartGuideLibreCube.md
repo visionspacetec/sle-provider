@@ -55,7 +55,7 @@ The configuration file *config.py* in the examples folder from the python-sle-us
 ```python
 config = {
 "RAF":{
-"RAF_INST_ID": "sagr=1.spack-VST-PASS0001.rsl-fg=1.raf=ontl1",
+"RAF_INST_ID": "sagr=1.spack=VST-PASS0001.rsl-fg=1.raf=ontl1",
 "SLE_PROVIDER_HOSTNAME": "localhost",
 "SLE_PROVIDER_TM_PORT": "55529",
 "INITIATOR_ID": "SLE_USER",
