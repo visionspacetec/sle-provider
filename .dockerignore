@@ -1,0 +1,7 @@
+.github
+.idea
+.git
+.gitignore
+sleprovider.egg-info
+dist
+build

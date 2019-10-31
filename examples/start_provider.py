@@ -1,8 +1,9 @@
+import os
 from sleprovider.sleProvider import SleProvider
 
-DATA_PORT = 55555
-USER_PORT = 55529
-MANAGER_PORT = 2048
+DATA_PORT = int(os.getenv('SLE_PROVIDER_DATA_PORT', 55555))
+USER_PORT = int(os.getenv('SLE_PROVIDER_USER_PORT', 55529))
+MANAGER_PORT = int(os.getenv('SLE_PROVIDER_MANAGER_PORT', 2048))
 
 provider = SleProvider()
 provider.initialize_server('rest_manager', 'http_no_auth_rest_protocol', MANAGER_PORT)

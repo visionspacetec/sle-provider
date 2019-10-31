@@ -27,13 +27,21 @@ It includes an interface for the Space Link Extension protocol, a management ser
 
 ## Installation & Usage
 
-When installing on a Raspberry Pi, install these packages before the next steps:
-
-```bash
-sudo apt-get install libffi-dev libssl-dev
-```
-
 If you want to configure the SLE Provider at runtime install our **[sle-management-client](https://github.com/visionspacetec/sle-management-client)**.
+
+### Docker
+The SLE Provider is started together with the GNU Radio middleware by running:
+```bash
+# Build and start the container
+docker-compose up --build -d
+# Check the state of the running container
+docker ps --all
+# Check the console output of the container
+docker logs sleprovider
+# Terminate the container
+docker-compose down
+```
+Which scripts are executed on startup can be configured in docker-entrypoint.py
 
 ### Setuptools
 
@@ -50,6 +58,13 @@ cd sle-provider
 virtualenv -p python3 venv
 source venv/bin/activate
 pip install -e .
+```
+### Raspberry Pi
+
+When installing on a Raspberry Pi, install these packages before the next steps:
+
+```bash
+sudo apt-get install libffi-dev libssl-dev
 ```
 
 ## Getting started
