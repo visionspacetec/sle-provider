@@ -1,0 +1,30 @@
+version: '3.7'
+networks:
+  sle:
+    name: sle-net
+services:
+  sleprovider:
+    build: .
+    container_name: sleprovider
+    environment:
+      # Provider configuration
+      - SLE_PROVIDER_HOSTNAME=127.0.0.1
+      - SLE_PROVIDER_DATA_PORT=55555
+      - SLE_PROVIDER_USER_PORT=55529
+      - SLE_PROVIDER_MANAGER_PORT=2048
+      # Middleware configuration
+      - SLE_MIDDLEWARE_HOSTNAME=127.0.0.1
+      - SLE_MIDDLEWARE_GOOD_FRAMES=16887
+      - SLE_MIDDLEWARE_BAD_FRAMES=16888
+      - SLE_MIDDLEWARE_ANTENNA_ID=VST
+    ports:
+      # REST API
+      - "2048:2048/tcp"
+      # Good frames
+      - "16887:16887/udp"
+      # Bad frames
+      - "16888:16888/udp"
+      # SLE provider
+      - "55529:55529/tcp"
+    networks:
+      - sle
