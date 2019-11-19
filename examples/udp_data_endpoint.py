@@ -31,7 +31,7 @@ class UdpEndpoint(DatagramProtocol):
         tm_frame['seg_len_id'] = 3
         tm_frame['first_hdr_ptr'] = int('11111111110', 2)
         tm_frame['ocf'] = BitArray('0x01000000')
-        self.transport.write(tm_frame.encode().encode())
+        self.transport.write(bytes.fromhex(tm_frame.encode()))
 
 
 reactor.listenUDP(0, UdpEndpoint())
