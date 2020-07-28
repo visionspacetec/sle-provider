@@ -12,6 +12,7 @@ from twisted.cred.checkers import FilePasswordDB
 from twisted.cred.portal import Portal
 from twisted.web.server import Site
 from twisted.internet import reactor, ssl
+from .baseband.middleware.frames import TelemetryTransferFrame, SpacePacket
 
 configurable_sle_parameters = ['authentication-delay',
                                'transmit-queue-size',
@@ -43,7 +44,7 @@ class SleProvider(object):
         self.users = []
         # SLE Configuration
         self.authentication_delay = 60
-        self.transmit_queue_size = 23
+        self.transmit_queue_size = 20
         self.startup_timer = 180
         self.allow_non_use_heartbeat = True
         self.min_heartbeat = 25
@@ -57,27 +58,11 @@ class SleProvider(object):
         self.server_types = {'rtnAllFrames': {2, 3, 4, 5}}
         # Credentials
         # ToDo Move in-memory passwords to file
-        self.local_id = 'SLE_PROVIDER'
+        self.local_id = ''
         self.local_password = ''
-        self.remote_peers = {'SLE_USER':
-                                 {'authentication_mode': 'NONE',
-                                  'password': ''}}
+        self.remote_peers = {}
         # Service Instances
-        self.si_config = {'sagr=1.spack=VST-PASS0001.rsl-fg=1.raf=onlt1':
-                              {'start_time': None,
-                               'stop_time': None,
-                               'initiator_id': 'SLE_USER',
-                               'responder_id': 'SLE_PROVIDER',
-                               'return_timeout_period': 15,
-                               'delivery_mode': 'TIMELY_ONLINE',
-                               'initiator': 'USER',
-                               'permitted_frame_quality':
-                                   ['allFrames', 'erredFramesOnly', 'goodFramesOnly'],
-                               'latency_limit': 9,
-                               'transfer_buffer_size': 1,
-                               'report_cycle': None,
-                               'requested_frame_quality': 'allFrames',
-                               'state': 'unbound'}}
+        self.si_config = {}
 
     def initialize_server(self, name, server_type, port, print_frames=False):
         if name not in self.servers:
@@ -163,14 +148,14 @@ class SleProvider(object):
                                 time_ms = (str_time -
                                            dt.datetime(str_time.year, str_time.month, str_time.day)).seconds \
                                            * 1000 + ((str_time - dt.datetime(str_time.year, str_time.month,
-                                                                            str_time.day)).microseconds // 1000)
+                                                                             str_time.day)).microseconds // 1000)
                                 time_micro = ((str_time -
                                                dt.datetime(str_time.year, str_time.month, str_time.day)).microseconds
                                               % 1000)
-                                receive_time = struct.pack('!HIH',time_days, time_ms, time_micro)
+                                receive_time = struct.pack('!HIH', time_days, time_ms, time_micro)
                                 # ToDo Format time correctly SLE V1&V2 Microsec V3 Picosec
                                 frame['earthReceiveTime']['ccsdsFormat'] = receive_time
-                                frame['antennaId']['localForm'] = antenna_id.encode('utf-8')
+                                frame['antennaId']['localForm'] = str(antenna_id).encode('utf-8')
                                 frame['deliveredFrameQuality'] = delivered_frame_quality
                                 frame['data'] = bytes.fromhex(data)
                                 user.append_to_transfer_buffer(frame)
@@ -216,7 +201,6 @@ class SleProvider(object):
                             frame['notification']['lossFrameSync']['carrierLockStatus'] = carrier_lock_status
                             frame['notification']['lossFrameSync']['subcarrierLockStatus'] = subcarrier_lock_status
                             frame['notification']['lossFrameSync']['symbolSyncLockStatus'] = symbol_sync_lock_status
-                            print(frame)
                             user._carrier_lock_status = carrier_lock_status
                             user._subcarrier_lock_status = subcarrier_lock_status
                             user._symbol_sync_lock_status = symbol_sync_lock_status

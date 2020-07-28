@@ -1,0 +1,9 @@
+{
+    "default": {
+        "NETWORK_API_URL": "https://network.satnogs.org/api/observations/",
+        "NETWORK_API_KEY": "17bf06f2a482bf917ea07e2efb6555f22963e40b",
+        "NETWORK_PARAMS": {"satellite__norad_cat_id" : 44878},
+        "DB_API_URL": "https://db.satnogs.org/api/telemetry",
+        "DB_API_KEY": "956f41c50d15e4ed475b8cce20afa37d86f0b8ed"
+  }
+}

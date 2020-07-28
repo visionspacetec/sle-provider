@@ -1,4 +1,6 @@
+import json
 import os
+import requests
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
@@ -32,7 +34,6 @@ class UdpEndpoint(DatagramProtocol):
         tm_frame['first_hdr_ptr'] = int('11111111110', 2)
         tm_frame['ocf'] = BitArray('0x01000000')
         self.transport.write(bytes.fromhex(tm_frame.encode()))
-
 
 reactor.listenUDP(0, UdpEndpoint())
 reactor.run()

@@ -3,6 +3,8 @@ from collections import defaultdict
 from twisted.internet import protocol
 from twisted.internet import reactor
 import struct
+import os
+import requests
 
 from slecommon.proxy.authentication import make_credentials
 from slecommon.proxy.authentication import check_invoke_credentials
@@ -54,6 +56,7 @@ class CommonProtocol(protocol.Protocol):
         self._peer_password = None
         self._responder_port = None
         self._inst_id = None
+        self._requested_observation = None
         self._auth_level = 'none'
         self._coding = SleCoding(decode_spec=RafUsertoProviderPdu())
         self._service_type = 'rtnAllFrames'
@@ -63,6 +66,7 @@ class CommonProtocol(protocol.Protocol):
         self._hbr_timer = None
         self._cpa_timer = None
         self._buffer = bytearray()
+        self._wrapper = None
 
     def connectionLost(self, reason):
         logger.info('Connection with client lost')
@@ -95,6 +99,7 @@ class CommonProtocol(protocol.Protocol):
                     and (self._report_timer.cancelled != 1):
                 self._report_timer.cancel()
                 self._report_timer = None
+        self.factory.container.si_config.pop(self._inst_id, None)
 
     def disconnect(self):
         logger.debug('Disconnecting')
@@ -251,9 +256,21 @@ class CommonProtocol(protocol.Protocol):
             # ToDo implement more service types
 
         pdu_return['responderIdentifier'] = self.factory.container.local_id
-
         self._initiator_id = pdu['rafBindInvocation']['initiatorIdentifier']
-
+        ###
+        # Query the API to get the registered Users
+        peer_request = requests.get(str(os.getenv('SATNOGS_NETWORK_API_INTERNAL')) + '/sle-users')
+        peers = peer_request.json()
+        for peer in peers:
+            remote_peer = {str(peer['INITIATOR_ID']):
+                               {
+                                    'authentication_mode': str(peer['INITIATOR_AUTH']),
+                                    'password': str(peer['INITIATOR_PASS']),
+                                    'satellites': peer['SATELLITES']
+                               }
+                           }
+            self.factory.container.remote_peers.update(remote_peer)
+        ###
         if self._initiator_id not in self.factory.container.remote_peers:
             pdu_return['result']['negative'] = 'accessDenied'
         elif self._service_type not in self.factory.container.server_types:
@@ -263,17 +280,58 @@ class CommonProtocol(protocol.Protocol):
 
         if 'negative' not in pdu_return['result']:
             self._inst_id = ''
+            ctr = 0
             for i in pdu['rafBindInvocation']['serviceInstanceIdentifier']:
                 self._inst_id += sii_dict[str(i[0]['identifier'])] + '=' + str(i[0]['siAttributeValue'])
+                if ctr == 1:
+                    self._requested_observation = str(i[0]['siAttributeValue']).split('-')[-1]
                 if i != pdu['rafBindInvocation']['serviceInstanceIdentifier'][-1]:
                     self._inst_id += '.'
+                ctr += 1
+            ###
+            # Query the API for the requested observation and check if it exists
+            observation_request = requests.get(
+                str(os.getenv('SATNOGS_NETWORK_API_EXTERNAL')) + '/observations',
+                params={"id": self._requested_observation})
+            observations = observation_request.json()
+            if observations != []:
+                observation = observations[0]
+                # ToDo: Start and stop time conversation
+                service_instance = {
+                    'sagr=1.spack=ID-{}-PASS-{}.rsl-fg=1.raf=onlt1'.format(self._initiator_id,
+                                                                           observation['id']):
+                        {
+                            'start_time': None,
+                            'stop_time': None,
+                            'initiator_id': str(self._initiator_id),
+                            'responder_id': self.factory.container.local_id,
+                            'return_timeout_period': int(os.getenv('SLE_PROVIDER_RETURN_TIMEOUT_PERIOD', 15)),
+                            'delivery_mode': 'TIMELY_ONLINE',
+                            'initiator': 'USER',
+                            'permitted_frame_quality':
+                                ['allFrames', 'erredFramesOnly', 'goodFramesOnly'],
+                            'latency_limit': int(os.getenv('SLE_PROVIDER_LATENCY_LIMIT', 9)),
+                            'transfer_buffer_size': int(os.getenv('SLE_PROVIDER_TRANSFER_BUFFER_SIZE', 20)),
+                            'report_cycle': None,
+                            'requested_frame_quality': 'allFrames',
+                            'state': 'unbound'}
+                        }
+                self.factory.container.si_config.update(service_instance)
+
+            satellite_accessible = False
+            for sat in self.factory.container.remote_peers[self._initiator_id]['satellites']:
+                if sat['id'] == observation['norad_cat_id']:
+                    satellite_accessible = True
+                    self._wrapper = sat['wrapper']
+                    break
+
             if self._inst_id not in self.factory.container.si_config:
                 pdu_return['result']['negative'] = 'noSuchServiceInstance'
             elif self.factory.container.si_config[self._inst_id]['state'] != 'unbound':
                 pdu_return['result']['negative'] = 'alreadyBound'
             elif self.factory.container.si_config[self._inst_id]['state'] == 'halted':
                 pdu_return['result']['negative'] = 'outOfService'
-            elif self.factory.container.si_config[self._inst_id]['initiator_id'] != self._initiator_id:
+            elif not satellite_accessible:
                 pdu_return['result']['negative'] = 'siNotAccessibleToThisInitiator'
             # ToDo out of provisioning period
             else:
@@ -281,12 +339,26 @@ class CommonProtocol(protocol.Protocol):
                 if self._service_type is 'rtnAllFrames':
                     if '.raf=' not in self._inst_id:
                         pdu_return['result']['negative'] = 'inconsistentServiceType'
-
-        if self.factory.container.remote_peers[self._initiator_id]['authentication_mode'] == 'NONE':
-            pdu_return['performerCredentials']['unused'] = None
+        if self._initiator_id in self.factory.container.remote_peers:
+            if self.factory.container.remote_peers[self._initiator_id]['authentication_mode'] == 'NONE':
+                if 'used' in pdu['rafBindInvocation']['invokerCredentials']:
+                    logger.info("Disconnecting, authentication modes do not match")
+                    self.disconnect()
+                pdu_return['performerCredentials']['unused'] = None
+            elif (('used' in pdu['rafBindInvocation']['invokerCredentials'])
+                    and (self.factory.container.remote_peers[self._initiator_id]['authentication_mode'] == 'NONE')) \
+                    or ('used' not in pdu['rafBindInvocation']['invokerCredentials']
+                        and ((self.factory.container.remote_peers[self._initiator_id]['authentication_mode'] == 'BIND')
+                        or (self.factory.container.remote_peers[self._initiator_id]['authentication_mode'] == 'ALL'))):
+                logger.info("Disconnecting, authentication modes do not match")
+                self.disconnect()
+                return
+            else:
+                pdu_return['performerCredentials']['used'] = make_credentials(self.factory.container.local_id,
+                                                                              self.factory.container.local_password)
         else:
-            pdu_return['performerCredentials']['used'] = make_credentials(self.factory.container.local_id,
-                                                                          self.factory.container.local_password)
+            pdu_return['performerCredentials']['unused'] = None
+
         if 'negative' not in pdu_return['result']:
             if self.factory.container.remote_peers[self._initiator_id]['authentication_mode'] != 'NONE':
                 if check_invoke_credentials(self._invoker_credentials, self._initiator_id,

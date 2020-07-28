@@ -1,0 +1,81 @@
+# sle-stateless-traefik.yml
+version: '3.6'
+
+networks:
+  proxy:
+    driver: overlay
+    ipam:
+      driver: default
+
+services:
+  json-server:
+    image: "clue/json-server"
+    ports: 
+    - 9090:80
+    volumes:
+      - "~/sle-satnogs/sle-swarm:/data"
+#      - "~/sle-satnogs/sle-swarm/db.json:/data/db.json"
+    command: "--watch"
+    networks:
+    - proxy
+
+  traefik:
+    image: "traefik:latest"
+    networks:
+    - proxy
+    volumes:
+    - "/var/run/docker.sock:/var/run/docker.sock"
+    ports:
+    - "80:80"
+    - "8080:8080"
+    - "55529:55529"
+    command: 
+    - "--api.insecure=true"
+    - "--api.dashboard=true"
+    - "--api.debug=true"
+    - "--log.level=DEBUG"
+    - "--providers.docker=true"
+    - "--providers.docker.watch=true"
+    - "--providers.docker.swarmMode=true"
+    - "--providers.docker.exposedbydefault=false"
+    - "--providers.docker.network=sle_proxy"
+    - "--entrypoints.sle.address=:55529"
+    - "--entrypoints.traefik.address=:8080"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+  provider:
+    image: "sleprovider-stateless:latest"
+    environment:
+    - "SLE_PROVIDER_RESPONDER_ID=SATNOGS"
+    - "SLE_PROVIDER_HOSTNAME=127.0.0.1"
+    - "SLE_PROVIDER_DATA_PORT=55555"
+    - "SLE_PROVIDER_USER_PORT=55529"
+    - "SLE_PROVIDER_MANAGER_PORT=2048"
+    - "SLE_MIDDLEWARE_HOSTNAME=127.0.0.1"
+    - "SLE_MIDDLEWARE_GOOD_FRAMES=16887"
+    - "SLE_MIDDLEWARE_BAD_FRAMES=16888"
+    - "SLE_PROVIDER_STARTUP_DELAY=20"
+    - "SLE_PROVIDER_POLLING_DELAY=10"
+    - "SLE_PROVIDER_RETURN_TIMEOUT_PERIOD=15"
+    - "SLE_PROVIDER_LATENCY_LIMIT=9"
+    - "SLE_PROVIDER_TRANSFER_BUFFER_SIZE=20"
+    - "SATNOGS_NETWORK_API_INTERNAL=http://10.0.80.5:80"
+    - "SATNOGS_NETWORK_API_EXTERNAL=https://network.satnogs.org/api"
+# docker service inspect sle_json-server -f "{{ .Endpoint.VirtualIPs }}"
+# [{wuuq5q3jnkr2avqqthatcx8sq 10.11.0.31/16} --> {dt9om1lifuan221uqcq56dkgp 10.0.75.7/24}] <--
+    deploy:
+      labels:
+      - "traefik.tcp.services.sle-service.loadbalancer.server.port=55529"
+      - "traefik.enable=true"
+      - "traefik.backend=sle-service"
+      - "traefik.backend.maxconn.amount=1"
+      - "traefik.backend.extractorfunc=client.ip"
+      - "traefik.frontend.rule=Host:sle.network.satnogs.org"
+      - "traefik.tcp.routers.sle-router.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.sle-router.entrypoints=sle"
+    networks:
+    - proxy
+

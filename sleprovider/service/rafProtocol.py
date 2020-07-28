@@ -103,6 +103,68 @@ class RafProtocol(CommonProtocol):
                     str(pdu['requestedFrameQuality'])
                 self.factory.container.si_config[self._inst_id]['state'] = 'active'
 
+                if self._wrapper is not None:
+                    if self._wrapper['name'] == 'CCSDS-TM-SPP':
+                        self.factory.container.data_endpoints[0].send_command(
+                            'start-telemetry',
+                            ['OBSERVATION_ID={}'.format(self._requested_observation),
+                             'WRAPPER={}'.format(self._wrapper['name']),
+                             'tm-length={}'.format(self._wrapper['args']['tm-length']),
+                             'tm-has-fecf={}'.format(self._wrapper['args']['tm-has-fecf']),
+                             'tm-is-idle={}'.format(self._wrapper['args']['tm-is-idle']),
+                             'tm-version={}'.format(self._wrapper['args']['tm-version']),
+                             'tm-spacecraft-id={}'.format(self._wrapper['args']['tm-spacecraft-id']),
+                             'tm-virtual-channel-id={}'.format(self._wrapper['args']['tm-virtual-channel-id']),
+                             'tm-ocf-flag={}'.format(self._wrapper['args']['tm-ocf-flag']),
+                             'tm-master-channel-frame-count={}'.format(self._wrapper['args']['tm-master-channel-frame-count']),
+                             'tm-virtual-channel-frame-count={}'.format(self._wrapper['args']['tm-virtual-channel-frame-count']),
+                             'tm-secondary-header-flag={}'.format(self._wrapper['args']['tm-secondary-header-flag']),
+                             'tm-sync-flag={}'.format(self._wrapper['args']['tm-sync-flag']),
+                             'tm-packet-order-flag={}'.format(self._wrapper['args']['tm-packet-order-flag']),
+                             'tm-segment-length-id={}'.format(self._wrapper['args']['tm-segment-length-id']),
+                             'tm-first-header-pointer={}'.format(self._wrapper['args']['tm-first-header-pointer']),
+                             'tm-ocf={}'.format(self._wrapper['args']['tm-ocf']),
+                             'spp-version={}'.format(self._wrapper['args']['spp-version']),
+                             'spp-type={}'.format(self._wrapper['args']['spp-type']),
+                             'spp-secondary-header-flag={}'.format(self._wrapper['args']['spp-secondary-header-flag']),
+                             'spp-apid={}'.format(self._wrapper['args']['spp-apid']),
+                             'spp-sequence-flags={}'.format(self._wrapper['args']['spp-sequence-flags']),
+                             'spp-sequence-count-or-packet-name={}'.format(self._wrapper['args']['spp-sequence-count-or-packet-name'])
+                             ])
+                    elif  self._wrapper['name'] == 'OPS-SAT':
+                        self.factory.container.data_endpoints[0].send_command(
+                            'start-telemetry',
+                            ['OBSERVATION_ID={}'.format(self._requested_observation),
+                             'WRAPPER={}'.format(self._wrapper['name']),
+                             'tm-length={}'.format(self._wrapper['args']['tm-length']),
+                             'tm-has-fecf={}'.format(self._wrapper['args']['tm-has-fecf']),
+                             'tm-is-idle={}'.format(self._wrapper['args']['tm-is-idle']),
+                             'tm-version={}'.format(self._wrapper['args']['tm-version']),
+                             'tm-spacecraft-id={}'.format(self._wrapper['args']['tm-spacecraft-id']),
+                             'tm-virtual-channel-id={}'.format(self._wrapper['args']['tm-virtual-channel-id']),
+                             'tm-ocf-flag={}'.format(self._wrapper['args']['tm-ocf-flag']),
+                             'tm-master-channel-frame-count={}'.format(
+                                 self._wrapper['args']['tm-master-channel-frame-count']),
+                             'tm-virtual-channel-frame-count={}'.format(
+                                 self._wrapper['args']['tm-virtual-channel-frame-count']),
+                             'tm-secondary-header-flag={}'.format(self._wrapper['args']['tm-secondary-header-flag']),
+                             'tm-sync-flag={}'.format(self._wrapper['args']['tm-sync-flag']),
+                             'tm-packet-order-flag={}'.format(self._wrapper['args']['tm-packet-order-flag']),
+                             'tm-segment-length-id={}'.format(self._wrapper['args']['tm-segment-length-id']),
+                             'tm-first-header-pointer={}'.format(self._wrapper['args']['tm-first-header-pointer']),
+                             'tm-ocf={}'.format(self._wrapper['args']['tm-ocf'])
+                             ])
+                    else:
+                        self.factory.container.data_endpoints[0].send_command(
+                            'start-telemetry',
+                            ['OBSERVATION_ID={}'.format(self._requested_observation),
+                             'WRAPPER=None'])
+                else:
+                    self.factory.container.data_endpoints[0].send_command(
+                        'start-telemetry',
+                        ['OBSERVATION_ID={}'.format(self._requested_observation),
+                         'WRAPPER=None'])
+
     def _stop_invocation_handler(self, pdu):
         logger.debug('Stop Invocation received!')
         if self.factory.container.si_config[self._inst_id]['state'] is not 'active':
@@ -133,6 +195,9 @@ class RafProtocol(CommonProtocol):
                 self.factory.container.si_config[self._inst_id]['requested_frame_quality'] = \
                     self.factory.container.si_config[self._inst_id]['permitted_frame_quality'][0]
                 self._data_continuity = -1
+                self.factory.container.data_endpoints[0].send_command(
+                    'stop-telemetry',
+                    [])
                 if self._release_timer is not None:
                     if (self._release_timer.called == 1) or (self._release_timer.cancelled == 1):
                         self._release_timer = None
