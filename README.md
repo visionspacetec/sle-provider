@@ -241,3 +241,7 @@ If you would like help implementing a new feature or fix a bug, check out our **
 ## Questions or need help?
 
 Please open an **[issue](https://github.com/visionspacetec/sle-provider/issues/new/choose)** for bug reporting, enhancement or feature requests.
+
+## Acknowledgement
+
+Support for this work was provided by the European Space Agency through the OPS Innovation Cup. The content of this repository is solely the responsibility of the authors and does not necessarily represent the official views of the European Space Agency.
