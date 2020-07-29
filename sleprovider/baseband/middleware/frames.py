@@ -7,10 +7,6 @@ from datetime import datetime
 from enum import Enum
 from bitstring import BitArray
 
-# idle_space_packet = BitArray('0x07ffc00000390000000000000000000000000000000000000000000000000000000000000000000000'
-#                             '0000000000000000000000000000000000000000000000')
-
-
 class SpacePacket(dict):
 
     def __init__(self, data=None):
