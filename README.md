@@ -99,6 +99,7 @@ Features supported:
 To build open terminal, go into the sle-provider folder, checkout the develop-satnogs branch and build the Docker image:
 ```bash
 docker build . --tag sleprovider-stateless --force-rm
+```
 
 Add local DNS entry
 ```bash
@@ -134,7 +135,7 @@ Check the virtual IP of the json-server, the second IP is used.
 
 Copy this IP to the sle-stateless-traefik.yml file into the user db url field. This is necessary since we are running a local server to simulate the planned behaviour of the SatNOGS Network API. Afterwads restart the SLE provider service to use the changed IP.
 ```bash
-"SATNOGS_NETWORK_API_INTERNAL=http://10.0.78.18:80"
+"SATNOGS_NETWORK_API_INTERNAL=http://10.0.75.7:80"
 ```
 
 Make sure that the local volume mapping for the database file is correct.
