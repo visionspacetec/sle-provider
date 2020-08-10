@@ -1,0 +1,94 @@
+{
+  "sle-users":
+  [
+      {
+          "id": 1,
+          "INITIATOR_ID":  "ESA",
+          "INITIATOR_AUTH": "NONE",
+          "INITIATOR_PASS": "ABC123",
+          "SATELLITES":
+          [
+              {
+                  "id":  44878,
+                  "wrapper":
+                  {
+                      "id": 1,
+                      "name": "OPS-SAT",
+                      "args":
+                      {
+                          "tm-length": 1115,
+                          "tm-has-fecf": true,
+                          "tm-is-idle": false,
+                          "tm-version": 0,
+                          "tm-spacecraft-id": 810,
+                          "tm-virtual-channel-id": 0,
+                          "tm-ocf-flag": false,
+                          "tm-master-channel-frame-count": 0,
+                          "tm-virtual-channel-frame-count": 0,
+                          "tm-secondary-header-flag": false,
+                          "tm-sync-flag": false,
+                          "tm-packet-order-flag": false,
+                          "tm-segment-length-id": 3,
+                          "tm-first-header-pointer": "00000000000",
+                          "tm-ocf": "0x01000000"
+                      }
+                  }
+              }
+          ]
+      },
+      {
+          "id": 2,
+          "INITIATOR_ID":  "FOX",
+          "INITIATOR_AUTH": "NONE",
+          "INITIATOR_PASS": "",
+          "SATELLITES":
+          [
+              {
+                  "id":  43017,
+                  "wrapper": null
+              }
+          ]
+      },
+      {
+          "id": 3,
+          "INITIATOR_ID":  "FOXB",
+          "INITIATOR_AUTH": "NONE",
+          "INITIATOR_PASS": "",
+          "SATELLITES":
+          [
+              {
+                  "id":  43017,
+                  "wrapper":
+                  {
+                      "id": 1,
+                      "name": "CCSDS-TM-SPP",
+                      "args":
+                      {
+                          "tm-length": 1115,
+                          "tm-has-fecf": true,
+                          "tm-is-idle": false,
+                          "tm-version": 0,
+                          "tm-spacecraft-id": 810,
+                          "tm-virtual-channel-id": 0,
+                          "tm-ocf-flag": false,
+                          "tm-master-channel-frame-count": 0,
+                          "tm-virtual-channel-frame-count": 0,
+                          "tm-secondary-header-flag": false,
+                          "tm-sync-flag": false,
+                          "tm-packet-order-flag": false,
+                          "tm-segment-length-id": 3,
+                          "tm-first-header-pointer": "00000000000",
+                          "tm-ocf": "0x01000000",
+                          "spp-version": 0,
+                          "spp-type": 0,
+                          "spp-secondary-header-flag": false,
+                          "spp-apid": 1,
+                          "spp-sequence-flags": 3,
+                          "spp-sequence-count-or-packet-name": 0
+                      }
+                  }
+              }
+          ]
+      }
+  ]
+}

@@ -67,7 +67,7 @@ config = {
 ```bash
 # Activate the virtual environment
 source ~/python-sle/venv/bin/activate
-python ~/python-sle/examples/raf_user.py
+python ~/python-sle/examples/raf.py
 ```
 
 After the successful **Bind** and **Start** operation, you can already see the **[ISP1](https://public.ccsds.org/Pubs/913x1b2.pdf)** heartbeat transmission.
