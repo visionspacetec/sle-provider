@@ -13,8 +13,8 @@ services:
     ports: 
     - 9090:80
     volumes:
-      - "~/sle-satnogs/sle-swarm:/data"
-#      - "~/sle-satnogs/sle-swarm/db.json:/data/db.json"
+      - "~/sle-provider:/data"
+#      - "~/sle-provider/db.json:/data/db.json"
     command: "--watch"
     networks:
     - proxy
@@ -62,7 +62,7 @@ services:
     - "SLE_PROVIDER_RETURN_TIMEOUT_PERIOD=15"
     - "SLE_PROVIDER_LATENCY_LIMIT=9"
     - "SLE_PROVIDER_TRANSFER_BUFFER_SIZE=20"
-    - "SATNOGS_NETWORK_API_INTERNAL=http://10.0.80.5:80"
+    - "SATNOGS_NETWORK_API_INTERNAL=http://10.0.80.116:80"
     - "SATNOGS_NETWORK_API_EXTERNAL=https://network.satnogs.org/api"
 # docker service inspect sle_json-server -f "{{ .Endpoint.VirtualIPs }}"
 # [{wuuq5q3jnkr2avqqthatcx8sq 10.11.0.31/16} --> {dt9om1lifuan221uqcq56dkgp 10.0.75.7/24}] <--

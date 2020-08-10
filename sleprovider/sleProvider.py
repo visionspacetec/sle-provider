@@ -4,6 +4,7 @@ import datetime as dt
 from slecommon.datatypes.raf_pdu import FrameOrNotification as RafFrameOrNotification
 from .baseband.dataProviderProtocolFactory import DataProviderProtocolFactory
 from .service.commonProviderProtocolFactory import CommonProviderProtocolFactory
+from .service.commonStatelessProviderProtocolFactory import CommonStatelessProviderProtocolFactory
 from .management.restfulManager import RestfulManager
 from .management.security.realm import Realm
 from .management.security.hash import check_hashed_password
@@ -12,7 +13,6 @@ from twisted.cred.checkers import FilePasswordDB
 from twisted.cred.portal import Portal
 from twisted.web.server import Site
 from twisted.internet import reactor, ssl
-from .baseband.middleware.frames import TelemetryTransferFrame, SpacePacket
 
 configurable_sle_parameters = ['authentication-delay',
                                'transmit-queue-size',
@@ -68,6 +68,8 @@ class SleProvider(object):
         if name not in self.servers:
             if server_type == 'sle_protocol':
                 self.servers[name] = CommonProviderProtocolFactory(self, print_frames)
+            if server_type == 'sle_stateless_protocol':
+                self.servers[name] = CommonStatelessProviderProtocolFactory(self, print_frames)
             elif server_type == 'json_data_protocol':
                 self.servers[name] = DataProviderProtocolFactory(self, print_frames)
             elif server_type in ['https_rest_protocol', 'http_rest_protocol']:

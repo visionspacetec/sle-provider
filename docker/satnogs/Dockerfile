@@ -19,7 +19,7 @@ WORKDIR /usr/local/sle-provider
 COPY . .
 RUN pip install -e .
 
-COPY docker-entrypoint.sh /usr/local/bin/
+COPY docker/satnogs/docker-entrypoint.sh /usr/local/bin/
 RUN chmod 777 /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

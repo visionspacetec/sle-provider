@@ -20,7 +20,7 @@ It includes an interface for the Space Link Extension protocol, a management ser
 - Online Timely frame delivery
 - OpenAPI management server and client
 - Integration with the SatNOGS Network API
-- Docker Swarm based service scaling
+- Docker Swarm based service
 - (in progress) Support for professional ground station equipment
 - (planned) Return Channel Frames (RCF) service
 - (planned) Forward  Communications Link Transmission Units (CLTU) Service
@@ -43,7 +43,7 @@ docker logs sleprovider
 # Terminate the container
 docker-compose down
 ```
-Which scripts are executed on startup can be configured in docker-entrypoint.py
+Which scripts are executed on startup can be configured in ./docker/frame_generation/docker-entrypoint.py
 
 ### Setuptools
 
@@ -98,7 +98,7 @@ Features supported:
 
 To build open terminal, go into the sle-provider folder, checkout the develop-satnogs branch and build the Docker image:
 ```bash
-docker build . --tag sleprovider-stateless --force-rm
+docker build -f ./docker/satnogs/Dockerfile . --tag sleprovider-stateless --force-rm
 ```
 
 Add local DNS entry
