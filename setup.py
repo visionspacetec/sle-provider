@@ -25,6 +25,6 @@ setup(
                                     'examples', '*.examples', 'examples.*', '*.examples.*',
                                     'tests', '*.tests', 'tests.*', '*.tests.*']),
     install_requires=['pyasn1', 'bitstring', 'twisted', 'klein', 'werkzeug',
-                      'PyOpenSSL', 'service_identity', 'slecommon'],
+                      'PyOpenSSL', 'service_identity', 'slecommon', 'requests'],
     extra_require={'Coretex': ['caretex']}
 )

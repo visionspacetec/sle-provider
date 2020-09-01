@@ -4,7 +4,9 @@ networks:
     name: sle-net
 services:
   sleprovider:
-    build: .
+    build:
+      context: .
+      dockerfile: ./docker/frame_generation/Dockerfile
     container_name: sleprovider
     environment:
       # Provider configuration

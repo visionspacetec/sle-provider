@@ -55,7 +55,7 @@ The configuration file *config.py* in the examples folder from the python-sle-us
 ```python
 config = {
 "RAF":{
-"RAF_INST_ID": "sagr=1.spack-VST-PASS0001.rsl-fg=1.raf=ontl1",
+"RAF_INST_ID": "sagr=1.spack=VST-PASS0001.rsl-fg=1.raf=onlt1",
 "SLE_PROVIDER_HOSTNAME": "localhost",
 "SLE_PROVIDER_TM_PORT": "55529",
 "INITIATOR_ID": "SLE_USER",
@@ -67,7 +67,7 @@ config = {
 ```bash
 # Activate the virtual environment
 source ~/python-sle/venv/bin/activate
-python ~/python-sle/examples/raf_user.py
+python ~/python-sle/examples/raf.py
 ```
 
 After the successful **Bind** and **Start** operation, you can already see the **[ISP1](https://public.ccsds.org/Pubs/913x1b2.pdf)** heartbeat transmission.

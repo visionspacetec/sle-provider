@@ -19,6 +19,8 @@ It includes an interface for the Space Link Extension protocol, a management ser
 - Return All Frames (RAF) service
 - Online Timely frame delivery
 - OpenAPI management server and client
+- Integration with the SatNOGS Network API
+- Docker Swarm based service
 - (in progress) Support for professional ground station equipment
 - (planned) Return Channel Frames (RCF) service
 - (planned) Forward  Communications Link Transmission Units (CLTU) Service
@@ -41,7 +43,7 @@ docker logs sleprovider
 # Terminate the container
 docker-compose down
 ```
-Which scripts are executed on startup can be configured in docker-entrypoint.py
+Which scripts are executed on startup can be configured in ./docker/frame_generation/docker-entrypoint.py
 
 ### Setuptools
 
@@ -73,6 +75,88 @@ Follow the [installation procedure](#installation--usage), then install a Space 
 - **[LibreCube python-sle](https://gitlab.com/librecube/prototypes/python-sle)**: 
 Try our [quick start guide](https://github.com/visionspacetec/sle-provider/blob/master/docs/QuickStartGuideLibreCube.md) for the python-sle!
 - **[NASA AIT-DSN](https://github.com/NASA-AMMOS/AIT-DSN)**
+
+### Stateless SLE server for SatNOGS
+This example comes with a REST DB to simulate the SatNOGS Network DB locally, a configured Traefik instance and a scaleable, stateless SLE provider.
+
+Features supported:
+* Scaleable Docker Swarm service
+  * One user per running container
+* Reverse proxy
+  * Round-robin loadbalancer
+  * Limits maximum connection count to number of running SLE providers
+* SLE user database
+  * Local database to manage SLE users
+  * Users to satellites mapping
+* All SLE SHA-1 authentication modes supported
+  * No authentication
+  * Bind authentication
+  * Full encryption
+* Return All Frames Service
+  * Timely Online service
+  * Offline service via Timely Online service
+
+To build open terminal, go into the sle-provider folder, checkout the develop-satnogs branch and build the Docker image:
+```bash
+docker build -f ./docker/satnogs/Dockerfile . --tag sleprovider-stateless --force-rm
+```
+
+Add local DNS entry
+```bash
+sudo nano /etc/hosts
+```
+
+Add these lines to route requests to sle.network.satnogs.org to your local machine.
+```bash
+127.0.0.1 sle.network.satnogs.org
+```
+Save with CRTL+S and exit with CTRL+X.
+
+Initialize the Docker swarm
+```bash
+docker swarm init
+```
+
+Deploy the test stack
+```bash
+docker stack deploy -c sle-stateless-traefik.yml sle
+```
+
+Check the status of the SLE service
+```bash
+docker service logs sle_provider
+```
+
+Check the virtual IP of the json-server, the second IP is used.
+```bash
+ docker service inspect sle_json-server -f "{{ .Endpoint.VirtualIPs }}"
+{wuuq5q3jnkr2avqqthatcx8sq 10.11.0.31/16} {dt9om1lifuan221uqcq56dkgp 10.0.75.7/24}
+```
+
+Copy this IP to the sle-stateless-traefik.yml file into the user db url field. This is necessary since we are running a local server to simulate the planned behaviour of the SatNOGS Network API. Afterwads restart the SLE provider service to use the changed IP.
+```bash
+"SATNOGS_NETWORK_API_INTERNAL=http://10.0.75.7:80"
+```
+
+Make sure that the local volume mapping for the database file is correct.
+
+Open your browser and navigate to localhost:8080 to view the Traefik dashboard. You can view the DB using the obtained IP on port 9090, from your local browser.
+
+The SLE service can be scaled, they are round-robin loadbalanced.
+```bash
+docker service scale sle_provider=5
+```
+
+Metrics for the services can be measured using (hit tab to complete xxxx):
+```bash
+docker stats sle_provider.1.xxxx sle_provider.2.xxxx 
+```
+
+When updating the SLE provider image
+```bash
+docker service rm sle_provider
+docker stack deploy -c sle-stateless-traefik.yml sle
+```
 
 ## Security
 
@@ -158,3 +242,7 @@ If you would like help implementing a new feature or fix a bug, check out our **
 ## Questions or need help?
 
 Please open an **[issue](https://github.com/visionspacetec/sle-provider/issues/new/choose)** for bug reporting, enhancement or feature requests.
+
+## Acknowledgement
+
+Support for this work was provided by the European Space Agency through the OPS Innovation Cup. The content of this repository is solely the responsibility of the authors and does not necessarily represent the official views of the European Space Agency.
