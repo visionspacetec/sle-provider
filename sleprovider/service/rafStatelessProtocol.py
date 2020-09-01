@@ -1,6 +1,6 @@
 import logging; logging.basicConfig(level=logging.DEBUG); logger = logging.getLogger(__name__)
 from .commonStatelessProtocol import CommonStatelessProtocol
-from slecommon.datatypes.raf_pdu import RafProvidertoUserPdu
+from slecommon.datatypes.raf_pdu import RafProviderToUserPdu
 from slecommon.datatypes.raf_structure import RafParameterName
 from slecommon.datatypes.raf_structure import PermittedFrameQualitySet
 from slecommon.proxy.authentication import make_credentials
@@ -68,7 +68,7 @@ class RafStatelessProtocol(CommonStatelessProtocol):
             # else:
             # ToDo raise error
 
-            pdu_return = RafProvidertoUserPdu()['rafStartReturn']
+            pdu_return = RafProviderToUserPdu()['rafStartReturn']
             if self.factory.container.remote_peers[self._initiator_id]['authentication_mode'] == 'ALL':
                 pdu_return['performerCredentials']['used'] = make_credentials(self.factory.container.local_id,
                                                                               self.factory.container.local_password)
@@ -172,7 +172,7 @@ class RafStatelessProtocol(CommonStatelessProtocol):
             self.peer_abort()
         else:
             pdu = pdu['rafStopInvocation']
-            pdu_return = RafProvidertoUserPdu()['rafStopReturn']
+            pdu_return = RafProviderToUserPdu()['rafStopReturn']
             if 'used' in pdu['invokerCredentials']:
                 self._invoker_credentials = pdu['invokerCredentials']['used']
                 if check_invoke_credentials(self._invoker_credentials, self._initiator_id,
@@ -208,7 +208,7 @@ class RafStatelessProtocol(CommonStatelessProtocol):
     def _get_parameter_invocation_handler(self, pdu):
         logger.debug('Get Parameter Invocation received!')
         pdu = pdu['rafGetParameterInvocation']
-        pdu_return = RafProvidertoUserPdu()['rafGetParameterReturn']
+        pdu_return = RafProviderToUserPdu()['rafGetParameterReturn']
 
         if 'used' in pdu['invokerCredentials']:
             self._invoker_credentials = pdu['invokerCredentials']['used']
@@ -303,7 +303,7 @@ class RafStatelessProtocol(CommonStatelessProtocol):
     def _schedule_status_report_invocation_handler(self, pdu):
         logger.debug('Get Schedule Status Report Invocation received!')
         pdu = pdu['rafScheduleStatusReportInvocation']
-        pdu_return = RafProvidertoUserPdu()['rafScheduleStatusReportReturn']
+        pdu_return = RafProviderToUserPdu()['rafScheduleStatusReportReturn']
         if 'used' in pdu['invokerCredentials']:
             self._invoker_credentials = pdu['invokerCredentials']['used']
             pdu_return['performerCredentials']['used'] = make_credentials(self.factory.container.local_id,
@@ -367,7 +367,7 @@ class RafStatelessProtocol(CommonStatelessProtocol):
             logger.error('Can not send status report in state: {}'
                          .format(self.factory.container.si_config[self._inst_id]['state']))
             return
-        pdu_invoc = RafProvidertoUserPdu()['rafStatusReportInvocation']
+        pdu_invoc = RafProviderToUserPdu()['rafStatusReportInvocation']
         if self.factory.container.remote_peers[self.factory.container.si_config[self._inst_id]['initiator_id']][
             'authentication_mode'] == 'ALL':
             pdu_invoc['invokerCredentials']['used'] = make_credentials(self.factory.container.local_id,
@@ -389,7 +389,7 @@ class RafStatelessProtocol(CommonStatelessProtocol):
 
     def append_to_transfer_buffer(self, frame_or_notification):
         if self._transfer_buffer is None:
-            self._transfer_buffer = RafProvidertoUserPdu()['rafTransferBuffer']
+            self._transfer_buffer = RafProviderToUserPdu()['rafTransferBuffer']
             self._release_timer = reactor.callLater(self.factory.container.si_config[self._inst_id]['latency_limit'],
                               self._send_transfer_buffer)
         if 'data' in frame_or_notification:

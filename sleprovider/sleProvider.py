@@ -55,7 +55,10 @@ class SleProvider(object):
         self.min_reporting_cycle = 8
         self.max_reporting_cycle = 60
         # ToDo For Version 1 SI OID Mapping is missing
-        self.server_types = {'rtnAllFrames': {2, 3, 4, 5}}
+        self.server_types = {
+            'rtnAllFrames': {2, 3, 4, 5},
+            'fwdCltu': {2, 3, 4, 5}
+        }
         # Credentials
         # ToDo Move in-memory passwords to file
         self.local_id = ''
@@ -68,7 +71,7 @@ class SleProvider(object):
         if name not in self.servers:
             if server_type == 'sle_protocol':
                 self.servers[name] = CommonProviderProtocolFactory(self, print_frames)
-            if server_type == 'sle_stateless_protocol':
+            elif server_type == 'sle_stateless_protocol':
                 self.servers[name] = CommonStatelessProviderProtocolFactory(self, print_frames)
             elif server_type == 'json_data_protocol':
                 self.servers[name] = DataProviderProtocolFactory(self, print_frames)

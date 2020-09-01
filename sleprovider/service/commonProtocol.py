@@ -7,8 +7,10 @@ import struct
 from slecommon.proxy.authentication import make_credentials
 from slecommon.proxy.authentication import check_invoke_credentials
 from slecommon.proxy.coding import SleCoding
-from slecommon.datatypes.raf_pdu import RafUsertoProviderPdu
-from slecommon.datatypes.raf_pdu import RafProvidertoUserPdu
+from slecommon.datatypes.raf_pdu import RafUserToProviderPdu
+from slecommon.datatypes.raf_pdu import RafProviderToUserPdu
+from slecommon.datatypes.cltu_pdu import CltuUserToProviderPdu
+from slecommon.datatypes.cltu_pdu import CltuProviderToUserPdu
 
 TML_CONTEXT_MSG_FORMAT = '!IIbbbbIHH'
 TML_CONTEXT_MSG_TYPE = 0x02000000
@@ -43,6 +45,8 @@ class CommonProtocol(protocol.Protocol):
         self._handlers = defaultdict(list)
         self.add_handler('RafBindInvocation', self._bind_invocation_handler)
         self.add_handler('RafUnbindInvocation', self._unbind_invocation_handler)
+        self.add_handler('CltuBindInvocation', self._bind_invocation_handler)
+        self.add_handler('CltuUnbindInvocation', self._unbind_invocation_handler)
         self._hostname = None
         self._port = None
         self._heartbeat = None
@@ -55,7 +59,7 @@ class CommonProtocol(protocol.Protocol):
         self._responder_port = None
         self._inst_id = None
         self._auth_level = 'none'
-        self._coding = SleCoding(decode_spec=RafUsertoProviderPdu())
+        self._coding = SleCoding(decode_spec=RafUserToProviderPdu())
         self._service_type = 'rtnAllFrames'
         self._version = 5
         self._tms_timer = reactor.callLater(self.factory.container.startup_timer, self._timer, 'TML start-up')
@@ -243,9 +247,14 @@ class CommonProtocol(protocol.Protocol):
         self._responder_port = str(pdu['rafBindInvocation']['responderPortIdentifier'])
         if str(pdu['rafBindInvocation']['serviceType']) == 'rtnAllFrames':
             self._service_type = str(pdu['rafBindInvocation']['serviceType'])
-            self._coding = SleCoding(decode_spec=RafUsertoProviderPdu())
+            self._coding = SleCoding(decode_spec=RafUserToProviderPdu())
             self._version = int(pdu['rafBindInvocation']['versionNumber'])
-            pdu_return = RafProvidertoUserPdu()['rafBindReturn']
+            pdu_return = RafProviderToUserPdu()['rafBindReturn']
+        elif str(pdu['rafBindInvocation']['serviceType']) == 'fwdCltu':
+            self._service_type = str(pdu['rafBindInvocation']['serviceType'])
+            self._coding = SleCoding(decode_spec=CltuUserToProviderPdu())
+            self._version = int(pdu['rafBindInvocation']['versionNumber'])
+            pdu_return = CltuProviderToUserPdu()['cltuBindReturn']
         else:
             raise Exception('Not Implemented')
             # ToDo implement more service types
@@ -281,6 +290,9 @@ class CommonProtocol(protocol.Protocol):
                 if self._service_type is 'rtnAllFrames':
                     if '.raf=' not in self._inst_id:
                         pdu_return['result']['negative'] = 'inconsistentServiceType'
+                elif self._service_type is 'fwdCltu':
+                    if '.cltu=' not in self._inst_id:
+                        pdu_return['result']['negative'] = 'inconsistentServiceType'
 
         if self.factory.container.remote_peers[self._initiator_id]['authentication_mode'] == 'NONE':
             pdu_return['performerCredentials']['unused'] = None
@@ -310,6 +322,11 @@ class CommonProtocol(protocol.Protocol):
                 from .rafProtocol import RafProtocol
                 self.__class__ = RafProtocol
                 self._initialise()
+            elif self._service_type == 'fwdCltu':
+                from .cltuProtocol import CltuProtocol
+                self.__class__ = CltuProtocol
+                self._initialise()
+            # ToDo implement more service types
 
     def _unbind_invocation_handler(self, pdu):
         logger.debug('Unbind Invocation received!')
@@ -319,8 +336,10 @@ class CommonProtocol(protocol.Protocol):
         else:
             if self._service_type is 'rtnAllFrames':
                 pdu = pdu['rafUnbindInvocation']
-                pdu_return = RafProvidertoUserPdu()['rafUnbindReturn']
-            # else:
+                pdu_return = RafProviderToUserPdu()['rafUnbindReturn']
+            elif self._service_type is 'fwdCltu':
+                pdu = pdu['cltuUnbindInvocation']
+                pdu_return = CltuProviderToUserPdu()['cltuUnbindReturn']
             # ToDo implement more service types
             if self.factory.container.remote_peers[self._initiator_id]['authentication_mode'] != 'ALL':
                 pdu_return['responderCredentials']['unused'] = None
@@ -351,12 +370,14 @@ class CommonProtocol(protocol.Protocol):
             logger.error('Invalid state transition requested! Must be ready or running!')
             return
         if self._service_type == 'rtnAllFrames':
-            pdu = RafProvidertoUserPdu()['rafPeerAbortInvocation']
-        # else:
+            pdu_return = RafProviderToUserPdu()['rafPeerAbortInvocation'] = reason
+        elif self._service_type == 'fwdCltu':
+            pdu_return = CltuProviderToUserPdu()['cltuPeerAbortInvocation'] = reason
+        logger.debug(pdu_return)
         # ToDo implement more service types
-        pdu = reason
+        # pdu = reason
         self._cpa_timer = reactor.callLater(10, self._timer, 'Peer Abort')
-        self._send_pdu(pdu)
+        self._send_pdu(pdu_return)
         self._hbr_timer.cancel()
         self._hbt_timer.cancel()
         self._state = 'Peer Aborting'
