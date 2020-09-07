@@ -49,8 +49,6 @@ class CltuProtocol(CommonProtocol):
                 self._invoker_credentials = None
             self._invoke_id = int(pdu['invokeId'])
             self.first_cltu_identification = pdu['firstCltuIdentification']
-            logger.debug(self.first_cltu_identification)
-
             pdu_return = CltuProviderToUserPdu()['cltuStartReturn']
             if self.factory.container.remote_peers[self._initiator_id]['authentication_mode'] == 'ALL':
                 pdu_return['performerCredentials']['used'] = make_credentials(self.factory.container.local_id,
@@ -82,7 +80,36 @@ class CltuProtocol(CommonProtocol):
                 self.factory.container.si_config[self._inst_id]['state'] = 'active'
 
     def _stop_invocation_handler(self, pdu):
-        pass
+        logger.debug('Stop Invocation received!')
+        if self.factory.container.si_config[self._inst_id]['state'] is not 'active':
+            logger.error('Invalid state transition')
+            self.peer_abort()
+        else:
+            pdu = pdu['cltuStopInvocation']
+            pdu_return = CltuProviderToUserPdu()['cltuStopReturn']
+            if 'used' in pdu['invokerCredentials']:
+                self._invoker_credentials = pdu['invokerCredentials']['used']
+                if check_invoke_credentials(self._invoker_credentials, self._initiator_id,
+                                            str(self.factory.container.remote_peers[
+                                                    str(self._initiator_id)]['password'])):
+                    pdu_return['credentials']['used'] = make_credentials(self.factory.container.local_id,
+                                                                         str(self.factory.container.remote_peers[
+                                                                                 str(self._initiator_id)]['password']))
+            else:
+                pdu_return['credentials']['unused'] = None
+                self._invoker_credentials = None
+            self._invoke_id = int(pdu['invokeId'])
+            pdu_return['invokeId'] = self._invoke_id
+            pdu_return['result']['positiveResult'] = None
+            self._send_pdu(pdu_return)
+            if 'positiveResult' in pdu_return['result']:
+                self.factory.container.si_config[self._inst_id]['state'] = 'ready'
+                if self._release_timer is not None:
+                    if (self._release_timer.called == 1) or (self._release_timer.cancelled == 1):
+                        self._release_timer = None
+                    else:
+                        self._release_timer.cancel()
+                        self._release_timer = None
 
     # def _get_parameter_invocation_handler(self, pdu):
     #    pass
