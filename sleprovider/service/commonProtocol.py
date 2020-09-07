@@ -87,8 +87,10 @@ class CommonProtocol(protocol.Protocol):
         if self.__class__ is not CommonProtocol:
             self.factory.container.si_config[self._inst_id]['state'] = 'unbound'
             self.factory.container.si_config[self._inst_id]['report_cycle'] = None
-            self.factory.container.si_config[self._inst_id]['requested_frame_quality'] = \
-                self.factory.container.si_config[self._inst_id]['permitted_frame_quality'][0]
+            from .rafProtocol import RafProtocol
+            if self.__class__ is RafProtocol:
+                self.factory.container.si_config[self._inst_id]['requested_frame_quality'] = \
+                    self.factory.container.si_config[self._inst_id]['permitted_frame_quality'][0]
             if (self._release_timer is not None) \
                     and (self._release_timer.called != 1) \
                     and (self._release_timer.cancelled != 1):
