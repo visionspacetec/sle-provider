@@ -18,7 +18,7 @@ class CltuProtocol(CommonProtocol):
         self.add_handler('CltuPeerAbortInvocation', self._peer_abort_invocation_handler)
         self.add_handler('CltuStartInvocation', self._start_invocation_handler)
         self.add_handler('CltuStopInvocation', self._stop_invocation_handler)
-        # self.add_handler('RafGetParameterInvocation', self._get_parameter_invocation_handler)
+        self.add_handler('CltuTransferDataInvocation', self._transfer_data_invocation_handler)
         # self.add_handler('RafScheduleStatusReportInvocation', self._schedule_status_report_invocation_handler)
         self._production_status = 'operational'
         self._transfer_buffer = None
@@ -111,6 +111,58 @@ class CltuProtocol(CommonProtocol):
                         self._release_timer.cancel()
                         self._release_timer = None
 
+    def _transfer_data_invocation_handler(self, pdu):
+        logger.debug('Transfer Data Invocation received!')
+        if self.factory.container.si_config[self._inst_id]['state'] is not 'active':
+            logger.error('Invalid state transition')
+            self.peer_abort()
+        else:
+            pdu = pdu['cltuTransferDataInvocation']
+            pdu_return = CltuProviderToUserPdu()['cltuTransferDataReturn']
+            if 'used' in pdu['invokerCredentials']:
+                self._invoker_credentials = pdu['invokerCredentials']['used']
+                if check_invoke_credentials(self._invoker_credentials, self._initiator_id,
+                                            str(self.factory.container.remote_peers[
+                                                    str(self._initiator_id)]['password'])):
+                    pdu_return['performerCredentials']['used'] = make_credentials(self.factory.container.local_id,
+                                                                         str(self.factory.container.remote_peers[
+                                                                                 str(self._initiator_id)]['password']))
+            else:
+                pdu_return['performerCredentials']['unused'] = None
+                self._invoker_credentials = None
+            self._invoke_id = int(pdu['invokeId'])
+            pdu_return['invokeId'] = self._invoke_id
+
+            cltu_identification = int(pdu['cltuIdentification'])
+            delay_time = int(pdu['delayTime'])  # Minimum time in milliseconds between radiation of this and next CLTU
+
+            if 'undefined' in pdu['earliestTransmissionTime']:
+                self.earliest_transmission_time = None
+            elif 'known' in pdu['earliestTransmissionTime']:
+                # ToDo: Implement
+                raise NotImplementedError
+                # self.earliest_transmission_time = pdu['earliestTransmissionTime']['known']
+            if 'undefined' in pdu['latestTransmissionTime']:
+                self.latest_transmission_time = None
+            elif 'known' in pdu['latestTransmissionTime']:
+                # ToDo: Implement
+                raise NotImplementedError
+                # self.latest_transmission_time = pdu['latestTransmissionTime']['known']
+
+            # 'slduRadiationNotification', SlduStatusNotification()
+            # 'cltuData', CltuData()
+
+            # invocation: cltu identification, earliest radiation time, latest radiation time, delay time, report, data
+            # return: cltu identification, cltu buffer available, result, (diagnostic if negative)
+
+            # ToDo: implement logic and different counting for return cltu identification if rejected
+            pdu_return['cltuIdentification'] = cltu_identification + 1
+            # ToDo: Implement buffer size
+            pdu_return['cltuBufferAvailable'] = 2048
+
+            # ToDo: Negative result
+            pdu_return['result']['positiveResult'] = None
+
     # def _get_parameter_invocation_handler(self, pdu):
     #    pass
 
@@ -120,8 +172,8 @@ class CltuProtocol(CommonProtocol):
     # def _send_status_report(self):
     #    pass
 
-    def append_to_transfer_buffer(self, frame_or_notification):
-        pass
+    # def append_to_transfer_buffer(self, frame_or_notification):
+    #    pass
 
-    def _send_transfer_buffer(self):
-        pass
+    # def _send_transfer_buffer(self):
+    #    pass
