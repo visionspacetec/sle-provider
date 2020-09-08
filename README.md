@@ -22,8 +22,8 @@ It includes an interface for the Space Link Extension protocol, a management ser
 - Integration with the SatNOGS Network API
 - Docker Swarm based service
 - (in progress) Support for professional ground station equipment
+- (in progress) Forward  Communications Link Transmission Units (CLTU) Service
 - (planned) Return Channel Frames (RCF) service
-- (planned) Forward  Communications Link Transmission Units (CLTU) Service
 - (planned) Online Complete frame delivery
 - (planned) Offline frame delivery
 
@@ -32,7 +32,7 @@ It includes an interface for the Space Link Extension protocol, a management ser
 If you want to configure the SLE Provider at runtime install our **[sle-management-client](https://github.com/visionspacetec/sle-management-client)**.
 
 ### Docker
-The SLE Provider is started together with the GNU Radio middleware by running:
+The SLE Provider is started together with the GNU Radio telemetry middleware by running:
 ```bash
 # Build and start the container
 docker-compose up --build -d
@@ -76,7 +76,7 @@ Follow the [installation procedure](#installation--usage), then install a Space 
 Try our [quick start guide](https://github.com/visionspacetec/sle-provider/blob/master/docs/QuickStartGuideLibreCube.md) for the python-sle!
 - **[NASA AIT-DSN](https://github.com/NASA-AMMOS/AIT-DSN)**
 
-### Stateless SLE server for SatNOGS
+### Stateless SLE telemetry server for SatNOGS
 This example comes with a REST DB to simulate the SatNOGS Network DB locally, a configured Traefik instance and a scaleable, stateless SLE provider.
 
 Features supported:
@@ -160,7 +160,7 @@ docker stack deploy -c sle-stateless-traefik.yml sle
 
 ## Security
 
-Usage of HTTPS and Basic Authentication is optional for development but highly recommended for production!
+Usage of HTTPS and Basic Authentication on the management API is optional for development but highly recommended for production!
 
 ### HTTPS for Management API
 

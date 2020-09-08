@@ -1,7 +1,8 @@
 import logging; logging.basicConfig(level=logging.DEBUG); logger = logging.getLogger(__name__)
-from twisted.internet import reactor, protocol
+import os
 import json
 import datetime as dt
+from twisted.internet import reactor, protocol
 
 
 class JsonClient(protocol.Protocol):
@@ -48,7 +49,8 @@ class JsonClient(protocol.Protocol):
             if pdu['command'] == 'send-telecommand':
                 try:
                     telecommand = pdu['args'][0].encode()
-                    logger.debug(telecommand)
+                    logger.debug("send-telecommand: {}".format(telecommand))
+                    self.factory.container.data_endpoints[0].send_message(telecommand)
                 except Exception as e:
                     logger.debug("Not able to send telecommand {}".format(e))
                     return
@@ -60,11 +62,14 @@ class JsonClient(protocol.Protocol):
             return
 
     def send_message(self, data, frame_quality):
-        msg = {'earthReceiveTime': str(dt.datetime.utcnow()),
-               'antennaId': self.factory.container.antenna_id,
-               'deliveredFrameQuality': frame_quality,
-               'data': data.hex()}
-        self.transport.write(json.dumps(msg).encode())
+        pass
+        # logger.debug("send_message data: {}".format(data))
+        # msg = {'earthReceiveTime': str(dt.datetime.utcnow()),
+        #       'antennaId': self.factory.container.antenna_id,
+        #       'deliveredFrameQuality': frame_quality,
+        #       'data': data.hex()}
+        # self.transport.write(json.dumps(msg).encode())
+        # ToDo
 
     def disconnect(self):
         logger.debug("SLE server disconnecting!")
@@ -88,31 +93,42 @@ class JsonClientFactory(protocol.ClientFactory):
 
 class UdpProtocol(protocol.DatagramProtocol):
 
-    def __init__(self, container, frame_quality):
+    def __init__(self, container):
         self.container = container
-        self.frame_quality = frame_quality
+        self.container.data_endpoints.append(self)
 
-    def datagramReceived(self, datagram, addr):
+    def datagramReceived(self, datagram, address):
         if self.container.print_frames:
-            logger.debug(datagram.hex())
-        self.container.users[0].send_message(datagram, self.frame_quality)
+            logger.debug("Datagram received: {}".format(datagram.hex()))
+        logger.debug("address: {}".format(address))
+        self.container.users[0].send_message(datagram, 'good')
+
+    def stopProtocol(self):
+        self.container.data_endpoints.remove(self)
+
+    def send_message(self, tc_frame):
+        self.transport.write(tc_frame, (os.getenv('SLE_MIDDLEWARE_TC_HOSTNAME', '127.0.0.1'),
+                                        int(os.getenv('SLE_MIDDLEWARE_GOOD_FRAMES', 16887))))
 
 
 class VST104Middleware:
 
-    def __init__(self, port_good_frames, port_erred_frames, host_sle, port_sle, print_frames):
+    def __init__(self, port_good_frames, host_sle, port_sle, antenna_id, print_frames):
         f = JsonClientFactory()
         f.container = self
+        self.antenna_id = antenna_id
         self.print_frames = print_frames
         self.connectors = {}
         self.users = []
+        self.data_endpoints = []
         self.connectors.update({'jsonClient': reactor.connectTCP(host_sle,
                                                                  port_sle,
                                                                  f)})
         if port_good_frames is not None:
-            self.connectors.update({'udpGoodFrames': reactor.listenUDP(port_good_frames, UdpProtocol(self, 'good'))})
-        if port_erred_frames is not None:
-            self.connectors.update({'udpErredFrames': reactor.listenUDP(port_erred_frames, UdpProtocol(self, 'erred'))})
+            # self.connectors.update({'udpFrames': reactor.listenUDP(port_good_frames, UdpProtocol(self))})
+            self.connectors.update({'udpFrames': reactor.listenUDP(0, UdpProtocol(self))})
+        else:
+            raise ValueError
 
     def start_reactor(self):
         logger.debug("VST104 middleware is now running!")
@@ -121,6 +137,6 @@ class VST104Middleware:
         reactor.run()
 
 
-def main(port_good_frames, port_erred_frames, host_sle, port_sle, print_frames=False):
-    client = VST104Middleware(port_good_frames, port_erred_frames, host_sle, port_sle, print_frames)
+def main(port_good_frames, host_sle, port_sle, antenna_id, print_frames=False):
+    client = VST104Middleware(port_good_frames, host_sle, port_sle, antenna_id, print_frames)
     client.start_reactor()

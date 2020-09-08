@@ -157,15 +157,12 @@ class CltuProtocol(CommonProtocol):
             else:
                 # ToDo: Implement produceNotification mechanism
                 raise NotImplementedError
-            logger.debug(bytes(pdu['cltuData']))
-
             self.factory.container.data_endpoints[0].send_command('send-telecommand', [bytes(pdu['cltuData']).decode()])
 
             # ToDo: implement logic and different counting for return cltu identification if rejected
             pdu_return['cltuIdentification'] = self.cltu_identification + 1
             # ToDo: Implement buffer size
             pdu_return['cltuBufferAvailable'] = 2048
-
             # ToDo: Negative result
             pdu_return['result']['positiveResult'] = None
             self._send_pdu(pdu_return)

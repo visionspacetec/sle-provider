@@ -1,6 +1,4 @@
-import json
 import os
-import requests
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
