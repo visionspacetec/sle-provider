@@ -121,20 +121,23 @@ class CltuProtocol(CommonProtocol):
             pdu_return = CltuProviderToUserPdu()['cltuTransferDataReturn']
             if 'used' in pdu['invokerCredentials']:
                 self._invoker_credentials = pdu['invokerCredentials']['used']
-                if check_invoke_credentials(self._invoker_credentials, self._initiator_id,
-                                            str(self.factory.container.remote_peers[
-                                                    str(self._initiator_id)]['password'])):
-                    pdu_return['performerCredentials']['used'] = make_credentials(self.factory.container.local_id,
-                                                                         str(self.factory.container.remote_peers[
-                                                                                 str(self._initiator_id)]['password']))
+                if check_invoke_credentials(
+                        self._invoker_credentials,
+                        self._initiator_id,
+                        str(self.factory.container.remote_peers[
+                                str(self._initiator_id)]['password'])):
+                    pdu_return['performerCredentials']['used'] = make_credentials(
+                        self.factory.container.local_id,
+                        str(self.factory.container.remote_peers[str(self._initiator_id)]['password']))
             else:
                 pdu_return['performerCredentials']['unused'] = None
                 self._invoker_credentials = None
             self._invoke_id = int(pdu['invokeId'])
             pdu_return['invokeId'] = self._invoke_id
 
-            cltu_identification = int(pdu['cltuIdentification'])
-            delay_time = int(pdu['delayTime'])  # Minimum time in milliseconds between radiation of this and next CLTU
+            self.cltu_identification = int(pdu['cltuIdentification'])
+            # ToDo: Minimum time in milliseconds between radiation of this and next CLTU
+            self.delay_time = int(pdu['delayTime'])
 
             if 'undefined' in pdu['earliestTransmissionTime']:
                 self.earliest_transmission_time = None
@@ -149,19 +152,23 @@ class CltuProtocol(CommonProtocol):
                 raise NotImplementedError
                 # self.latest_transmission_time = pdu['latestTransmissionTime']['known']
 
-            # 'slduRadiationNotification', SlduStatusNotification()
-            # 'cltuData', CltuData()
+            if str(pdu['slduRadiationNotification']) == 'doNotProduceNotification':
+                pass
+            else:
+                # ToDo: Implement produceNotification mechanism
+                raise NotImplementedError
+            logger.debug(bytes(pdu['cltuData']))
 
-            # invocation: cltu identification, earliest radiation time, latest radiation time, delay time, report, data
-            # return: cltu identification, cltu buffer available, result, (diagnostic if negative)
+            self.factory.container.data_endpoints[0].send_command('send-telecommand', [bytes(pdu['cltuData']).decode()])
 
             # ToDo: implement logic and different counting for return cltu identification if rejected
-            pdu_return['cltuIdentification'] = cltu_identification + 1
+            pdu_return['cltuIdentification'] = self.cltu_identification + 1
             # ToDo: Implement buffer size
             pdu_return['cltuBufferAvailable'] = 2048
 
             # ToDo: Negative result
             pdu_return['result']['positiveResult'] = None
+            self._send_pdu(pdu_return)
 
     # def _get_parameter_invocation_handler(self, pdu):
     #    pass
