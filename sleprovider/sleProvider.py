@@ -140,8 +140,9 @@ class SleProvider(object):
         for si in self.si_config:
             if '.raf=' in si:
                 frame = RafFrameOrNotification()['annotatedFrame']
+            # ToDo: Implement more return services
             else:
-                raise NotImplementedError()
+                continue
             if self.si_config[si]['delivery_mode'] == 'TIMELY_ONLINE':
                 if self.si_config[si]['state'] == 'active':
                     for user in self.users:

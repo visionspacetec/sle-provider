@@ -24,7 +24,6 @@ class JsonClient(protocol.Protocol):
             data = (self._rem + data.decode()).encode()
             self._rem = ''
             pdu = json.loads(data)
-            # logger.debug("The SLE server sent: {}".format(pdu))
             self._pdu_handler(pdu)
         except json.JSONDecodeError:
             buffer = data.decode()
@@ -62,14 +61,12 @@ class JsonClient(protocol.Protocol):
             return
 
     def send_message(self, data, frame_quality):
-        pass
-        # logger.debug("send_message data: {}".format(data))
-        # msg = {'earthReceiveTime': str(dt.datetime.utcnow()),
-        #       'antennaId': self.factory.container.antenna_id,
-        #       'deliveredFrameQuality': frame_quality,
-        #       'data': data.hex()}
-        # self.transport.write(json.dumps(msg).encode())
-        # ToDo
+        msg = {'earthReceiveTime': str(dt.datetime.utcnow()),
+               'antennaId': self.factory.container.antenna_id,
+               'deliveredFrameQuality': frame_quality,
+               'data': data.hex()}
+        logger.debug("Send message to SLE provider: {}".format(msg))
+        self.transport.write(json.dumps(msg).encode())
 
     def disconnect(self):
         logger.debug("SLE server disconnecting!")
@@ -100,7 +97,7 @@ class UdpProtocol(protocol.DatagramProtocol):
     def datagramReceived(self, datagram, address):
         if self.container.print_frames:
             logger.debug("Datagram received: {}".format(datagram.hex()))
-        logger.debug("address: {}".format(address))
+        logger.debug("Address: {}".format(address))
         self.container.users[0].send_message(datagram, 'good')
 
     def stopProtocol(self):
@@ -125,8 +122,7 @@ class VST104Middleware:
                                                                  port_sle,
                                                                  f)})
         if port_good_frames is not None:
-            # self.connectors.update({'udpFrames': reactor.listenUDP(port_good_frames, UdpProtocol(self))})
-            self.connectors.update({'udpFrames': reactor.listenUDP(0, UdpProtocol(self))})
+            self.connectors.update({'udpFrames': reactor.listenUDP(16888, UdpProtocol(self))})
         else:
             raise ValueError
 
