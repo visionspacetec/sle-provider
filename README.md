@@ -17,12 +17,14 @@ It includes an interface for the Space Link Extension protocol, a management ser
 ### Features
 
 - Return All Frames (RAF) service
+- (in progress) Forward  Communications Link Transmission Units (FCLTU) Service
+    - Incomplete implementation: BIND, START, STOP, TRANSFER DATA, PEER ABORT already implemented
 - Online Timely frame delivery
 - OpenAPI management server and client
 - Integration with the SatNOGS Network API
 - Docker Swarm based service
 - (in progress) Support for professional ground station equipment
-- (in progress) Forward  Communications Link Transmission Units (CLTU) Service
+    - CORTEX supported, required library available on request
 - (planned) Return Channel Frames (RCF) service
 - (planned) Online Complete frame delivery
 - (planned) Offline frame delivery
@@ -43,7 +45,7 @@ docker logs sleprovider
 # Terminate the container
 docker-compose down
 ```
-Which scripts are executed on startup can be configured in ./docker/frame_generation/docker-entrypoint.py
+Which scripts are executed on startup can be configured in *./docker/frame_generation/docker-entrypoint.py* of by changing the Docker entrypoint in *./docker-compose.yml*.
 
 If you have troubles restarting the Docker container try out the following to update all dependencies:
 ```bash
