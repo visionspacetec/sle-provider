@@ -5,7 +5,7 @@ import datetime as dt
 import requests
 from twisted.internet import reactor, protocol
 from twisted.internet.task import LoopingCall
-from .frames import SpacePacket, TelemetryTransferFrame, ax25_csp_to_spp
+from slecommon.frames import SpacePacket, TelemetryTransferFrame, ax25_csp_to_spp
 from bitstring import BitArray
 from collections import OrderedDict
 

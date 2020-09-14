@@ -1,6 +1,4 @@
-import json
 import os
-import requests
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
@@ -11,7 +9,7 @@ from bitstring import BitArray
 class UdpEndpoint(DatagramProtocol):
 
     def startProtocol(self):
-        self.transport.connect(os.getenv('SLE_MIDDLEWARE_HOSTNAME', '127.0.0.1'),
+        self.transport.connect(os.getenv('SLE_MIDDLEWARE_TM_HOSTNAME', '127.0.0.1'),
                                int(os.getenv('SLE_MIDDLEWARE_GOOD_FRAMES', 16887)))
         looping_call = LoopingCall(self.send_message)
         looping_call.start(1)

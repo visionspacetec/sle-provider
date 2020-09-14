@@ -107,5 +107,7 @@ class DataProtocol(protocol.Protocol):
             self.transport.write(json.dumps({'command': command, 'args': arg_list}).encode())
         elif command == 'stop-telemetry':
             self.transport.write(json.dumps({'command': command, 'args': arg_list}).encode())
+        elif command == 'send-telecommand':
+            self.transport.write(json.dumps({'command': command, 'args': arg_list}).encode())
         else:
             logger.error('Command {} is not supported!'.format(command))

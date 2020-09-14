@@ -7,6 +7,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/frame_generation/Dockerfile
+      # dockerfile: ./docker/frame_sending/Dockerfile
     container_name: sleprovider
     environment:
       # Provider configuration
@@ -15,10 +16,11 @@ services:
       - SLE_PROVIDER_USER_PORT=55529
       - SLE_PROVIDER_MANAGER_PORT=2048
       # Middleware configuration
-      - SLE_MIDDLEWARE_HOSTNAME=127.0.0.1
+      - SLE_MIDDLEWARE_TM_HOSTNAME=127.0.0.1
       - SLE_MIDDLEWARE_GOOD_FRAMES=16887
       - SLE_MIDDLEWARE_BAD_FRAMES=16888
       - SLE_MIDDLEWARE_ANTENNA_ID=VST
+      - SLE_MIDDLEWARE_TC_HOSTNAME=127.0.0.1
     ports:
       # REST API
       - "2048:2048/tcp"

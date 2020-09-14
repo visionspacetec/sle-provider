@@ -17,13 +17,15 @@ It includes an interface for the Space Link Extension protocol, a management ser
 ### Features
 
 - Return All Frames (RAF) service
+- (in progress) Forward  Communications Link Transmission Units (FCLTU) Service
+    - Incomplete implementation: BIND, START, STOP, TRANSFER DATA, PEER ABORT already implemented
 - Online Timely frame delivery
 - OpenAPI management server and client
 - Integration with the SatNOGS Network API
 - Docker Swarm based service
 - (in progress) Support for professional ground station equipment
+    - CORTEX supported, required library available on request
 - (planned) Return Channel Frames (RCF) service
-- (planned) Forward  Communications Link Transmission Units (CLTU) Service
 - (planned) Online Complete frame delivery
 - (planned) Offline frame delivery
 
@@ -32,7 +34,7 @@ It includes an interface for the Space Link Extension protocol, a management ser
 If you want to configure the SLE Provider at runtime install our **[sle-management-client](https://github.com/visionspacetec/sle-management-client)**.
 
 ### Docker
-The SLE Provider is started together with the GNU Radio middleware by running:
+The SLE Provider is started together with the GNU Radio telemetry middleware by running:
 ```bash
 # Build and start the container
 docker-compose up --build -d
@@ -43,7 +45,13 @@ docker logs sleprovider
 # Terminate the container
 docker-compose down
 ```
-Which scripts are executed on startup can be configured in ./docker/frame_generation/docker-entrypoint.py
+Which scripts are executed on startup can be configured in *./docker/frame_generation/docker-entrypoint.py* of by changing the Docker entrypoint in *./docker-compose.yml*.
+
+If you have troubles restarting the Docker container try out the following to update all dependencies:
+```bash
+docker-compose build --force-rm --pull --no-cache
+docker-compose up --build -d
+```
 
 ### Setuptools
 
@@ -76,7 +84,7 @@ Follow the [installation procedure](#installation--usage), then install a Space 
 Try our [quick start guide](https://github.com/visionspacetec/sle-provider/blob/master/docs/QuickStartGuideLibreCube.md) for the python-sle!
 - **[NASA AIT-DSN](https://github.com/NASA-AMMOS/AIT-DSN)**
 
-### Stateless SLE server for SatNOGS
+### Stateless SLE telemetry server for SatNOGS
 This example comes with a REST DB to simulate the SatNOGS Network DB locally, a configured Traefik instance and a scaleable, stateless SLE provider.
 
 Features supported:
@@ -160,7 +168,7 @@ docker stack deploy -c sle-stateless-traefik.yml sle
 
 ## Security
 
-Usage of HTTPS and Basic Authentication is optional for development but highly recommended for production!
+Usage of HTTPS and Basic Authentication on the management API is optional for development but highly recommended for production!
 
 ### HTTPS for Management API
 
@@ -192,6 +200,7 @@ cp -f server.pem /pathTo/venv/lib/python3.6/site-packages/certifi<your-version>/
 
 To setup the local password database, for the HTTP Basic authentication schema, 
 open authentication_db.py, enter a username-password combination in the empty fields and run the script.
+This is only needed when using the REST management API.
 ```python
 from sleprovider.management.security.authManager import AuthManager
 user = ''  # Enter username here
@@ -212,16 +221,62 @@ python3 start_provider.py
 or configure the server for your own needs:
 
 ```python
+import os
 from sleprovider.sleProvider import SleProvider
 
-DATA_PORT = 55555
-USER_PORT = 55529
-MANAGER_PORT = 2048
+DATA_PORT = int(os.getenv('SLE_PROVIDER_DATA_PORT', 55555))
+USER_PORT = int(os.getenv('SLE_PROVIDER_USER_PORT', 55529))
+MANAGER_PORT = int(os.getenv('SLE_PROVIDER_MANAGER_PORT', 2048))
 
 provider = SleProvider()
-provider.initialize_server('rest_manager', 'https_rest_protocol', MANAGER_PORT)
-provider.initialize_server('sle_provider', 'sle_protocol', USER_PORT)
-provider.initialize_server('data_endpoint', 'json_data_protocol', DATA_PORT)
+
+provider.local_id = 'SLE_PROVIDER'
+provider.remote_peers = {
+    'SLE_USER':
+        {
+            'authentication_mode': 'NONE',
+            'password': ''
+        }
+}
+provider.si_config = {
+    'sagr=1.spack=VST-PASS0001.rsl-fg=1.raf=onlt1':
+        {
+            'start_time': None,
+            'stop_time': None,
+            'initiator_id': 'SLE_USER',
+            'responder_id': 'SLE_PROVIDER',
+            'return_timeout_period': 15,
+            'delivery_mode': 'TIMELY_ONLINE',
+            'initiator': 'USER',
+            'permitted_frame_quality':
+                ['allFrames', 'erredFramesOnly', 'goodFramesOnly'],
+            'latency_limit': 9,
+            'transfer_buffer_size': 1,
+            'report_cycle': None,
+            'requested_frame_quality': 'allFrames',
+            'state': 'unbound'
+        },
+    'sagr=1.spack=VST-PASS0001.fsl-fg=1.cltu=cltu1':
+        {
+            'start_time': None,
+            'stop_time': None,
+            'initiator_id': 'SLE_USER',
+            'responder_id': 'SLE_PROVIDER',
+            'return_timeout_period': 15,
+            'maximum_cltu_length': 306,
+            'minimum_cltu_delay': 0,
+            'maximum_cltu_delay': 6000000,
+            'bit_lock_required': False,
+            'rf_availiable_required': False,
+            'report_cycle': None,
+            'protocol_abort_clear_enabled': True,
+            'state': 'unbound'
+        }
+}
+
+provider.initialize_server('rest_manager', 'http_no_auth_rest_protocol', MANAGER_PORT)
+provider.initialize_server('sle_provider', 'sle_protocol', USER_PORT, print_frames=False)
+provider.initialize_server('data_endpoint', 'json_data_protocol', DATA_PORT, print_frames=False)
 provider.start_reactor()
 ``` 
 

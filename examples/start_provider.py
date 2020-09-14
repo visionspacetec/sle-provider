@@ -32,6 +32,22 @@ provider.si_config = {
             'report_cycle': None,
             'requested_frame_quality': 'allFrames',
             'state': 'unbound'
+        },
+    'sagr=1.spack=VST-PASS0001.fsl-fg=1.cltu=cltu1':
+        {
+            'start_time': None,
+            'stop_time': None,
+            'initiator_id': 'SLE_USER',
+            'responder_id': 'SLE_PROVIDER',
+            'return_timeout_period': 15,
+            'maximum_cltu_length': 306,
+            'minimum_cltu_delay': 0,
+            'maximum_cltu_delay': 6000000,
+            'bit_lock_required': False,
+            'rf_availiable_required': False,
+            'report_cycle': None,
+            'protocol_abort_clear_enabled': True,
+            'state': 'unbound'
         }
 }
 

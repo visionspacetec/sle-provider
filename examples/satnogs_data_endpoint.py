@@ -21,7 +21,7 @@ class SatNOGSEndpoint(DatagramProtocol):
         self.observation_count = len(self.observation_data[0]['demoddata'])
 
     def startProtocol(self):
-        self.transport.connect(os.getenv('SLE_MIDDLEWARE_HOSTNAME', '127.0.0.1'),
+        self.transport.connect(os.getenv('SLE_MIDDLEWARE_TM_HOSTNAME', '127.0.0.1'),
                                int(os.getenv('SLE_MIDDLEWARE_GOOD_FRAMES', 16887)))
         self.observation_data = self.satnogs.get_observation(OBSERVATION_ID).json()
         self.observation_count = len(self.observation_data[0]['demoddata'])
