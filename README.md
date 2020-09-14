@@ -192,6 +192,7 @@ cp -f server.pem /pathTo/venv/lib/python3.6/site-packages/certifi<your-version>/
 
 To setup the local password database, for the HTTP Basic authentication schema, 
 open authentication_db.py, enter a username-password combination in the empty fields and run the script.
+This is only needed when using the REST management API.
 ```python
 from sleprovider.management.security.authManager import AuthManager
 user = ''  # Enter username here
@@ -212,16 +213,62 @@ python3 start_provider.py
 or configure the server for your own needs:
 
 ```python
+import os
 from sleprovider.sleProvider import SleProvider
 
-DATA_PORT = 55555
-USER_PORT = 55529
-MANAGER_PORT = 2048
+DATA_PORT = int(os.getenv('SLE_PROVIDER_DATA_PORT', 55555))
+USER_PORT = int(os.getenv('SLE_PROVIDER_USER_PORT', 55529))
+MANAGER_PORT = int(os.getenv('SLE_PROVIDER_MANAGER_PORT', 2048))
 
 provider = SleProvider()
-provider.initialize_server('rest_manager', 'https_rest_protocol', MANAGER_PORT)
-provider.initialize_server('sle_provider', 'sle_protocol', USER_PORT)
-provider.initialize_server('data_endpoint', 'json_data_protocol', DATA_PORT)
+
+provider.local_id = 'SLE_PROVIDER'
+provider.remote_peers = {
+    'SLE_USER':
+        {
+            'authentication_mode': 'NONE',
+            'password': ''
+        }
+}
+provider.si_config = {
+    'sagr=1.spack=VST-PASS0001.rsl-fg=1.raf=onlt1':
+        {
+            'start_time': None,
+            'stop_time': None,
+            'initiator_id': 'SLE_USER',
+            'responder_id': 'SLE_PROVIDER',
+            'return_timeout_period': 15,
+            'delivery_mode': 'TIMELY_ONLINE',
+            'initiator': 'USER',
+            'permitted_frame_quality':
+                ['allFrames', 'erredFramesOnly', 'goodFramesOnly'],
+            'latency_limit': 9,
+            'transfer_buffer_size': 1,
+            'report_cycle': None,
+            'requested_frame_quality': 'allFrames',
+            'state': 'unbound'
+        },
+    'sagr=1.spack=VST-PASS0001.fsl-fg=1.cltu=cltu1':
+        {
+            'start_time': None,
+            'stop_time': None,
+            'initiator_id': 'SLE_USER',
+            'responder_id': 'SLE_PROVIDER',
+            'return_timeout_period': 15,
+            'maximum_cltu_length': 306,
+            'minimum_cltu_delay': 0,
+            'maximum_cltu_delay': 6000000,
+            'bit_lock_required': False,
+            'rf_availiable_required': False,
+            'report_cycle': None,
+            'protocol_abort_clear_enabled': True,
+            'state': 'unbound'
+        }
+}
+
+provider.initialize_server('rest_manager', 'http_no_auth_rest_protocol', MANAGER_PORT)
+provider.initialize_server('sle_provider', 'sle_protocol', USER_PORT, print_frames=False)
+provider.initialize_server('data_endpoint', 'json_data_protocol', DATA_PORT, print_frames=False)
 provider.start_reactor()
 ``` 
 
