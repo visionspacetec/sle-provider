@@ -142,7 +142,86 @@ Frames are generated, send to the SLE provider and forwarded to connected client
 
 ## Next steps
 
-After you finished this first example you can try out disabeling frame generation and sending frames from your prefered source to the SLE provider (e.g. GNUradio) or start up the FCLTU example. To do so, change the docker entrypoint in the *docker-compose.yml* to **dockerfile: ./docker/frame_sending/Dockerfile**.
+After you finished this first example you can try out disabling frame generation and sending frames from your preferred source to the SLE provider (e.g. GNUradio) or start up the FCLTU example.
+
+### FCLTU example
+Change the docker entrypoint in the *docker-compose.yml* to **dockerfile: ./docker/frame_sending/Dockerfile**.
+
+
+In *python-sle-user/examples/cltu.py*:
+```python
+import logging; logging.basicConfig(level=logging.DEBUG)
+import time
+import sle
+from config import config
+
+
+cltu = sle.CltuUser(
+    service_instance_identifier=config['CLTU']['CLTU_INST_ID'],
+    responder_ip=config['CLTU']['SLE_PROVIDER_HOSTNAME'],
+    responder_port=int(config['CLTU']['SLE_PROVIDER_TC_PORT']),
+    auth_level='none',
+    local_identifier=config['CLTU']['INITIATOR_ID'],
+    peer_identifier=config['CLTU']['RESPONDER_ID'],
+    local_password=config['CLTU']['PASSWORD'],
+    peer_password=config['CLTU']['PEER_PASSWORD'],
+    heartbeat=25,
+    deadfactor=5,
+    buffer_size=256000,
+    version_number=2)
+
+
+def return_data_handler(data):
+    print(data.prettyPrint())
+
+
+cltu.status_report_handler = return_data_handler
+cltu.parameter_handler = return_data_handler
+
+
+cltu.bind()
+time.sleep(2)
+
+if cltu.state == 'ready':
+    cltu.start()
+    time.sleep(2)
+
+    try:
+        cltu.transfer_data(b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a")
+        time.sleep(2)
+        cltu.transfer_data(b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a")
+        time.sleep(2)
+
+    except KeyboardInterrupt:
+        pass
+
+    finally:
+        cltu.stop()
+        time.sleep(2)
+        cltu.unbind(reason='other')  # avoid instance to be unloaded
+        time.sleep(2)
+
+else:
+    print("Failed binding to Provider. Aborting...")
+```
+
+Restart the SLE provider:
+```bash
+docker-compose up --build -d
+```
+
+Connect at first with the RAF user and then with the CLTU user to the provider. 
+```bash
+source ~/python-sle-user/venv/bin/activate
+python ~/python-sle-user/examples/raf.py
+```
+
+The CLTU user will send two telecommands to the provider which are sent bach using a UDP loopback client. On the RAF user these frames are received again.
+. Open a new terminal session for the second user:
+```bash
+source ~/python-sle-user/venv/bin/activate
+python ~/python-sle-user/examples/cltu.py
+```
 
 ## Questions or need help?
 

@@ -45,6 +45,12 @@ docker-compose down
 ```
 Which scripts are executed on startup can be configured in ./docker/frame_generation/docker-entrypoint.py
 
+If you have troubles restarting the Docker container try out the following to update all dependencies:
+```bash
+docker-compose build --force-rm --pull --no-cache
+docker-compose up --build -d
+```
+
 ### Setuptools
 
 Install the **[sle-common](https://github.com/visionspacetec/sle-common)** package first, before installing the sle-provider!
