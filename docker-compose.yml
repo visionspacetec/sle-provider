@@ -6,8 +6,8 @@ services:
   sleprovider:
     build:
       context: .
-      # dockerfile: ./docker/frame_generation/Dockerfile
-      dockerfile: ./docker/frame_sending/Dockerfile
+      dockerfile: ./docker/frame_generation/Dockerfile
+      # dockerfile: ./docker/frame_sending/Dockerfile
     container_name: sleprovider
     environment:
       # Provider configuration
