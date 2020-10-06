@@ -147,7 +147,7 @@ class SleProvider(object):
                 if self.si_config[si]['state'] == 'active':
                     for user in self.users:
                         if user._inst_id == si:
-                            if (self.si_config[si]['requested_frame_quality'] == delivered_frame_quality) or \
+                            if (delivered_frame_quality in self.si_config[si]['requested_frame_quality']) or \
                                     (self.si_config[si]['requested_frame_quality'] == 'allFrames'):
                                 str_time = dt.datetime.strptime(earth_receive_time, '%Y-%m-%d %H:%M:%S.%f')
                                 time_days = (str_time - dt.datetime(1958, 1, 1)).days
