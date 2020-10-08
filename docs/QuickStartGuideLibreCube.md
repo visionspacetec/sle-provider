@@ -38,90 +38,44 @@ python3 ~/sle-provider/examples/start_provider.py
 docker-compose up --build -d
 ```
 
-In any case, after start-up of the SLE provider, start the python-sle-user Return All Frames example:
+In any case, after start-up of the SLE provider, create the python-sle-user Return All Frames example:
 
 In *python-sle-user/examples/raf.py*:
 
 ```python
-import logging; logging.basicConfig(level=logging.DEBUG)
 import time
 import sle
-from config import config
 
-raf = sle.RafUser(
-    service_instance_identifier=config['RAF']['RAF_INST_ID'],
-    responder_ip=config['RAF']['SLE_PROVIDER_HOSTNAME'],
-    responder_port=int(config['RAF']['SLE_PROVIDER_TM_PORT']),
-    auth_level='none',
-    local_identifier=config['RAF']['INITIATOR_ID'],
-    peer_identifier=config['RAF']['RESPONDER_ID'],
-    local_password=config['RAF']['PASSWORD'],
-    peer_password=config['RAF']['PEER_PASSWORD'],
-    heartbeat=25,
-    deadfactor=5,
-    buffer_size=4096,
-    version_number=2)
+raf_service = sle.RafUser(
+    service_instance_identifier="sagr=1.spack=VST-PASS0001.rsl-fg=1.raf=onlt1",
+    responder_ip="localhost",
+    responder_port=55529,
+    auth_level=None,
+    local_identifier="SLE_USER",
+    peer_identifier="SLE_PROVIDER",
+    local_password="",
+    peer_password="")
 
-def return_data_handler(data):
+def print_data(data):
     print(data.prettyPrint())
 
-raf.frame_handler = return_data_handler
-raf.status_report_handler = return_data_handler
-raf.parameter_handler = return_data_handler
+raf_service.frame_handler = print_data
 
-def main():
-    raf.bind()
-    time.sleep(2)
+raf_service.bind()
+time.sleep(1)
 
-    if raf.state != 'ready':
-        print("Failed to bind to provider. Aborting...")
-        return
+input("Enter to start")
+raf_service.start()
+time.sleep(1)
 
-    raf.start()
-    time.sleep(2)
+input("Enter to stop \n")
+raf_service.stop()
+time.sleep(1)
 
-    try:
-        while True:
-            time.sleep(0)
+input("Enter to unbind")
+raf_service.unbind()
+time.sleep(1)
 
-    except KeyboardInterrupt:
-        pass
-
-    finally:
-        if raf.state == 'active':
-            raf.stop()
-            time.sleep(2)
-        raf.schedule_status_report()
-        time.sleep(2)
-        raf.unbind(reason='other')
-        time.sleep(2)
-
-main()
-```
-
-Fill the configuration parameters in *python-sle-user/examples/config.py*:
-
-```python
-config = {
-    "RAF": {
-        "RAF_INST_ID": "sagr=1.spack=VST-PASS0001.rsl-fg=1.raf=onlt1",
-        "SLE_PROVIDER_HOSTNAME": "localhost",
-        "SLE_PROVIDER_TM_PORT": "55529",
-        "INITIATOR_ID": "SLE_USER",
-        "RESPONDER_ID": "SLE_PROVIDER",
-        "PASSWORD": "",
-        "PEER_PASSWORD": "",
-    },
-    "CLTU": {
-        "CLTU_INST_ID": "sagr=1.spack=VST-PASS0001.fsl-fg=1.cltu=cltu1",
-        "SLE_PROVIDER_HOSTNAME": "localhost",
-        "SLE_PROVIDER_TC_PORT": "55529",
-        "INITIATOR_ID": "SLE_USER",
-        "RESPONDER_ID": "SLE_PROVIDER",
-        "PASSWORD": "",
-        "PEER_PASSWORD": "",
-    }
-}
 ```
 
 If you used the virtual environment installation procedure activate it and start the Return All Frames user:
@@ -147,62 +101,46 @@ After you finished this first example you can try out disabling frame generation
 ### FCLTU example
 Change the docker entrypoint in the *docker-compose.yml* to **dockerfile: ./docker/frame_sending/Dockerfile**.
 
-
-In *python-sle-user/examples/cltu.py*:
+Create the file *python-sle-user/examples/cltu.py*:
 ```python
-import logging; logging.basicConfig(level=logging.DEBUG)
 import time
 import sle
-from config import config
 
+cltu_service = sle.CltuUser(
+    service_instance_identifier="sagr=1.spack=VST-PASS0001.fsl-fg=1.cltu=cltu1",
+    responder_ip="localhost",
+    responder_port=55529,
+    auth_level=None,
+    local_identifier="SLE_USER",
+    peer_identifier="SLE_PROVIDER",
+    local_password="",
+    peer_password="")
 
-cltu = sle.CltuUser(
-    service_instance_identifier=config['CLTU']['CLTU_INST_ID'],
-    responder_ip=config['CLTU']['SLE_PROVIDER_HOSTNAME'],
-    responder_port=int(config['CLTU']['SLE_PROVIDER_TC_PORT']),
-    auth_level='none',
-    local_identifier=config['CLTU']['INITIATOR_ID'],
-    peer_identifier=config['CLTU']['RESPONDER_ID'],
-    local_password=config['CLTU']['PASSWORD'],
-    peer_password=config['CLTU']['PEER_PASSWORD'],
-    heartbeat=25,
-    deadfactor=5,
-    buffer_size=256000,
-    version_number=2)
-
-
-def return_data_handler(data):
+def print_data(data):
     print(data.prettyPrint())
 
+cltu_service.status_report = print_data
 
-cltu.status_report_handler = return_data_handler
-cltu.parameter_handler = return_data_handler
+cltu_service.bind()
+time.sleep(1)
 
+cltu_service.schedule_status_report(report_type='periodically', cycle=10)
 
-cltu.bind()
-time.sleep(2)
+input("Enter to start \n")
+cltu_service.start()
+time.sleep(1)
 
-if cltu.state == 'ready':
-    cltu.start()
-    time.sleep(2)
+cltu = b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"  # dummy example
+cltu_service.transfer_data(cltu)
 
-    try:
-        cltu.transfer_data(b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a")
-        time.sleep(2)
-        cltu.transfer_data(b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a")
-        time.sleep(2)
+input("Enter to stop")
+cltu_service.stop()
+time.sleep(1)
 
-    except KeyboardInterrupt:
-        pass
+input("Enter to unbind")
+cltu_service.unbind()
+time.sleep(1)
 
-    finally:
-        cltu.stop()
-        time.sleep(2)
-        cltu.unbind(reason='other')  # avoid instance to be unloaded
-        time.sleep(2)
-
-else:
-    print("Failed binding to Provider. Aborting...")
 ```
 
 Restart the SLE provider:
@@ -216,7 +154,7 @@ source ~/python-sle-user/venv/bin/activate
 python ~/python-sle-user/examples/raf.py
 ```
 
-The CLTU user will send two telecommands to the provider which are sent bach using a UDP loopback client. On the RAF user these frames are received again.
+The CLTU user will send one telecommand to the provider which is sent back using a UDP loopback client. On the RAF user the frame is received again.
 . Open a new terminal session for the second user:
 ```bash
 source ~/python-sle-user/venv/bin/activate
