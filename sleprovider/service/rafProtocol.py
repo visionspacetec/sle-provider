@@ -236,13 +236,13 @@ class RafProtocol(CommonProtocol):
         self._send_pdu(pdu_return)
 
     def _schedule_status_report_invocation_handler(self, pdu):
-        logger.debug('Get Schedule Status Report Invocation received!')
+        logger.debug('Schedule Status Report Invocation received!')
         pdu = pdu['rafScheduleStatusReportInvocation']
         pdu_return = RafProviderToUserPdu()['rafScheduleStatusReportReturn']
         if 'used' in pdu['invokerCredentials']:
             self._invoker_credentials = pdu['invokerCredentials']['used']
             pdu_return['performerCredentials']['used'] = make_credentials(self.factory.container.local_id,
-                                                                              self.factory.container.local_password)
+                                                                          self.factory.container.local_password)
         else:
             self._invoker_credentials = None
             pdu_return['performerCredentials']['unused'] = None
@@ -253,9 +253,10 @@ class RafProtocol(CommonProtocol):
         elif self.factory.container.si_config[self._inst_id]['delivery_mode'] == 'OFFLINE':
             pdu_return['result']['negativeResult']['specific'] = 'notSupportedInThisDeliveryMode'
         elif self.factory.container.remote_peers[self._initiator_id]['authentication_mode'] == \
-                'ALL' and not check_invoke_credentials(self._invoker_credentials, self._initiator_id,
-                                            str(self.factory.container.remote_peers[str(self._initiator_id)][
-                                                    'password'])):
+                'ALL' and not check_invoke_credentials(self._invoker_credentials,
+                                                       self._initiator_id,
+                                                       str(self.factory.container.remote_peers[
+                                                               str(self._initiator_id)]['password'])):
             pdu_return['result']['negativeResult']['common'] = 'otherReason'
         elif 'periodically' in pdu['reportRequestType']:
             if not (self.factory.container.min_reporting_cycle
@@ -304,9 +305,9 @@ class RafProtocol(CommonProtocol):
             return
         pdu_invoc = RafProviderToUserPdu()['rafStatusReportInvocation']
         if self.factory.container.remote_peers[self.factory.container.si_config[self._inst_id]['initiator_id']][
-            'authentication_mode'] == 'ALL':
+                'authentication_mode'] == 'ALL':
             pdu_invoc['invokerCredentials']['used'] = make_credentials(self.factory.container.local_id,
-                                                                              self.factory.container.local_password)
+                                                                       self.factory.container.local_password)
         else:
             pdu_invoc['invokerCredentials']['unused'] = None
         pdu_invoc['errorFreeFrameNumber'] = self._number_of_error_free_frames_delivered
@@ -328,10 +329,11 @@ class RafProtocol(CommonProtocol):
             self._release_timer = reactor.callLater(self.factory.container.si_config[self._inst_id]['latency_limit'],
                               self._send_transfer_buffer)
         if 'data' in frame_or_notification:
-            if self.factory.container.remote_peers[self.factory.container.si_config[self._inst_id]['initiator_id']
-            ]['authentication_mode'] == 'ALL':
-                frame_or_notification['invokerCredentials']['used'] = make_credentials(self.factory.container.local_id,
-                                                                              self.factory.container.local_password)
+            if self.factory.container.remote_peers[self.factory.container.si_config[self._inst_id]['initiator_id']][
+                    'authentication_mode'] == 'ALL':
+                frame_or_notification['invokerCredentials']['used'] = make_credentials(
+                    self.factory.container.local_id,
+                    self.factory.container.local_password)
             else:
                 frame_or_notification['invokerCredentials']['unused'] = None
             frame_or_notification['dataLinkContinuity'] = self._data_continuity
@@ -342,10 +344,11 @@ class RafProtocol(CommonProtocol):
             self._data_continuity = 0
             # ToDo Data link continuity
         elif 'notification' in frame_or_notification:
-            if self.factory.container.remote_peers[self.factory.container.si_config[self._inst_id]['initiator_id']
-            ]['authentication_mode'] == 'ALL':
-                frame_or_notification['invokerCredentials']['used'] = make_credentials(self.factory.container.local_id,
-                                                                                       self.factory.container.local_password)
+            if self.factory.container.remote_peers[self.factory.container.si_config[self._inst_id]['initiator_id']][
+                    'authentication_mode'] == 'ALL':
+                frame_or_notification['invokerCredentials']['used'] = make_credentials(
+                    self.factory.container.local_id,
+                    self.factory.container.local_password)
             else:
                 frame_or_notification['invokerCredentials']['unused'] = None
         else:
