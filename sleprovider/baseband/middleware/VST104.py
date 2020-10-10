@@ -47,7 +47,7 @@ class JsonClient(protocol.Protocol):
         if 'command' in pdu:
             if pdu['command'] == 'send-telecommand':
                 try:
-                    telecommand = pdu['args'][0].encode()
+                    telecommand = bytes.fromhex(pdu['args'][0])
                     logger.debug("send-telecommand: {}".format(telecommand))
                     self.factory.container.data_endpoints[0].send_message(telecommand)
                 except Exception as e:

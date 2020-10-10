@@ -130,7 +130,7 @@ input("Enter to start \n")
 cltu_service.start()
 time.sleep(1)
 
-cltu = b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"  # dummy example
+cltu = b"\xab\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"  # dummy example
 cltu_service.transfer_data(cltu)
 
 input("Enter to stop")
@@ -155,7 +155,7 @@ python ~/python-sle-user/examples/raf.py
 ```
 
 The CLTU user will send one telecommand to the provider which is sent back using a UDP loopback client. On the RAF user the frame is received again.
-. Open a new terminal session for the second user:
+Open a new terminal session for the second user:
 ```bash
 source ~/python-sle-user/venv/bin/activate
 python ~/python-sle-user/examples/cltu.py

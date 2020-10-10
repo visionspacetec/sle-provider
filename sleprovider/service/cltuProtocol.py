@@ -177,7 +177,7 @@ class CltuProtocol(CommonProtocol):
             self.last_radiation_start_time = struct.pack('!HIH', time_days, time_ms, time_micro)
             self._cltu_last_processed = self.cltu_identification  # ToDo: Get feedback from data_endpoint if actually radiated
 
-            self.factory.container.data_endpoints[0].send_command('send-telecommand', [bytes(pdu['cltuData']).decode()])
+            self.factory.container.data_endpoints[0].send_command('send-telecommand', [pdu['cltuData']._value.hex()])
 
             self._number_of_cltus_processed += 1
             self._number_of_cltus_radiated += 1  # ToDo: Get feedback from data_endpoint if actually radiated

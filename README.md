@@ -18,7 +18,7 @@ It includes an interface for the Space Link Extension protocol, a management ser
 
 - Return All Frames (RAF) service
 - (in progress) Forward  Communications Link Transmission Units (FCLTU) Service
-    - Incomplete implementation: BIND, START, STOP, TRANSFER DATA, PEER ABORT already implemented
+    - Incomplete implementation: ASYNC NOTIFY, GET PARAMETER and THROW EVENT missing
 - Online Timely frame delivery
 - OpenAPI management server and client
 - Integration with the SatNOGS Network API
@@ -210,7 +210,7 @@ AuthManager.create_user(user, password)
 
 Use the 'http_rest_protocol' or 'https_rest_protocol',  when initializing the management server.
 
-### Start the SLE Provider:
+## Start the SLE Provider:
 
 Run the example script
 
