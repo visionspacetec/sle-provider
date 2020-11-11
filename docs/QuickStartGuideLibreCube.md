@@ -48,7 +48,7 @@ import sle
 
 raf_service = sle.RafUser(
     service_instance_identifier="sagr=1.spack=VST-PASS0001.rsl-fg=1.raf=onlt1",
-    responder_ip="localhost",
+    responder_host="localhost",
     responder_port=55529,
     auth_level=None,
     local_identifier="SLE_USER",
