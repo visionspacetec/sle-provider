@@ -15,7 +15,6 @@ from collections import OrderedDict
 
 ZEROMQ_SUB_URI = str(os.getenv('ZEROMQ_SUB_URI', "tcp://127.0.0.1:5560"))
 ZEROMQ_SOCKET_RCVTIMEO = int(os.getenv('ZEROMQ_SOCKET_RCVTIMEO', "10"))
-RECV_PAUSE_TIME = float(os.getenv('RECV_PAUSE_TIME', '0.01'))
 
 class JsonClient(protocol.Protocol):
 
@@ -181,6 +180,7 @@ class JsonClientFactory(protocol.ClientFactory):
         reactor.stop()
 
     def clientConnectionLost(self, connector, reason):
+        print(reason)
         print("Connection to the SLE server lost!")
 
     def buildProtocol(self, addr):
@@ -200,6 +200,7 @@ class SatNOGSMiddleware:
         self.print_frames = print_frames
         self.users = []
         self.connectors = {}
+        self.frame_counter = 0
         self.connectors.update({'jsonClient': reactor.connectTCP(host_sle,
                                                                  port_sle,
                                                                  f)})
@@ -219,6 +220,8 @@ class SatNOGSMiddleware:
                     frame = binascii.unhexlify(frame)
                     self.antenna_id = station_id.decode("utf-8")
                     self.users[0].send_message(frame, 'good', frame_time)
+                    self.frame_counter += 1
+                    logger.info('Frames sent: ' + str(self.frame_counter))
             except zmq.ZMQError as error:
                 pass
             if self.stopped:
