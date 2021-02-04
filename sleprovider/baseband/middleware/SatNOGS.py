@@ -20,11 +20,11 @@ class JsonClient(protocol.Protocol):
 
     def connectionMade(self):
         try:
-            print("Connection to the SLE provider successful")
+            logger.info("Connection to the SLE provider successful")
             self._rem = ''
             self.factory.container.users.append(self)
         except Exception as e:
-            print("Not able to connect to the SLE provider: {}".format(e))
+            logger.info("Not able to connect to the SLE provider: {}".format(e))
             self.disconnect()
 
     def connectionLost(self, reason):
@@ -35,7 +35,7 @@ class JsonClient(protocol.Protocol):
             data = (self._rem + data.decode()).encode()
             self._rem = ''
             pdu = json.loads(data)
-            print("The SLE server said: {}".format(pdu))
+            logger.info("The SLE server said: {}".format(pdu))
             self._pdu_handler(pdu)
         except json.JSONDecodeError:
             buffer = data.decode()
@@ -169,19 +169,19 @@ class JsonClient(protocol.Protocol):
         self.transport.write(json.dumps(msg).encode())
 
     def disconnect(self):
-        print("SLE server disconnecting!")
+        logger.info("SLE server disconnecting!")
         self.transport.loseConnection()
 
 
 class JsonClientFactory(protocol.ClientFactory):
 
     def clientConnectionFailed(self, connector, reason):
-        print("SLE server connection failed - goodbye!")
+        logger.info("SLE server connection failed - goodbye!")
         reactor.stop()
 
     def clientConnectionLost(self, connector, reason):
-        print(reason)
-        print("Connection to the SLE server lost!")
+        logger.info(reason)
+        logger.info("Connection to the SLE server lost!")
 
     def buildProtocol(self, addr):
         p = JsonClient()
@@ -231,9 +231,9 @@ class SatNOGSMiddleware:
                 break
 
     def start_reactor(self):
-        print("SatNOGS middleware is now running!")
+        logger.info("SatNOGS middleware is now running!")
         if self.print_frames:
-            print("Print of frames enabled")
+            logger.info("Print of frames enabled")
         reactor.run()
 
 
