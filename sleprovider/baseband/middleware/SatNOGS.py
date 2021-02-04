@@ -182,6 +182,8 @@ class JsonClientFactory(protocol.ClientFactory):
     def clientConnectionLost(self, connector, reason):
         logger.info(reason)
         logger.info("Connection to the SLE server lost!")
+        logger.info("Trying to reconnect...")
+        connector.connect()
 
     def buildProtocol(self, addr):
         p = JsonClient()
