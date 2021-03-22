@@ -259,8 +259,93 @@ class CommonStatelessProtocol(protocol.Protocol):
         self._initiator_id = pdu['rafBindInvocation']['initiatorIdentifier']
         ###
         # Query the API to get the registered Users
-        peer_request = requests.get(str(os.getenv('SATNOGS_NETWORK_API_INTERNAL')) + '/sle-users')
-        peers = peer_request.json()
+        peers_database = {
+            "sle-users" : [
+               {
+                  "INITIATOR_AUTH" : "NONE",
+                  "INITIATOR_ID" : "ESA",
+                  "INITIATOR_PASS" : "ABC123",
+                  "SATELLITES" : [
+                     {
+                        "id" : 44878,
+                        "wrapper" : {
+                           "args" : {
+                              "tm-first-header-pointer" : "00000000000",
+                              "tm-has-fecf" : True,
+                              "tm-is-idle" : False,
+                              "tm-length" : 1115,
+                              "tm-master-channel-frame-count" : 0,
+                              "tm-ocf" : "0x01000000",
+                              "tm-ocf-flag" : False,
+                              "tm-packet-order-flag" : False,
+                              "tm-secondary-header-flag" : False,
+                              "tm-segment-length-id" : 3,
+                              "tm-spacecraft-id" : 810,
+                              "tm-sync-flag" : False,
+                              "tm-version" : 0,
+                              "tm-virtual-channel-frame-count" : 0,
+                              "tm-virtual-channel-id" : 0
+                           },
+                           "id" : 1,
+                           "name" : "OPS-SAT"
+                        }
+                     }
+                  ],
+                  "id" : 1
+               },
+               {
+                  "INITIATOR_AUTH" : "NONE",
+                  "INITIATOR_ID" : "FOX",
+                  "INITIATOR_PASS" : "",
+                  "SATELLITES" : [
+                     {
+                        "id" : 43017,
+                        "wrapper" : None
+                     }
+                  ],
+                  "id" : 2
+               },
+               {
+                  "INITIATOR_AUTH" : "NONE",
+                  "INITIATOR_ID" : "FOXB",
+                  "INITIATOR_PASS" : "",
+                  "SATELLITES" : [
+                     {
+                        "id" : 43017,
+                        "wrapper" : {
+                           "args" : {
+                              "spp-apid" : 1,
+                              "spp-secondary-header-flag" : False,
+                              "spp-sequence-count-or-packet-name" : 0,
+                              "spp-sequence-flags" : 3,
+                              "spp-type" : 0,
+                              "spp-version" : 0,
+                              "tm-first-header-pointer" : "00000000000",
+                              "tm-has-fecf" : True,
+                              "tm-is-idle" : False,
+                              "tm-length" : 1115,
+                              "tm-master-channel-frame-count" : 0,
+                              "tm-ocf" : "0x01000000",
+                              "tm-ocf-flag" : False,
+                              "tm-packet-order-flag" : False,
+                              "tm-secondary-header-flag" : False,
+                              "tm-segment-length-id" : 3,
+                              "tm-spacecraft-id" : 810,
+                              "tm-sync-flag" : False,
+                              "tm-version" : 0,
+                              "tm-virtual-channel-frame-count" : 0,
+                              "tm-virtual-channel-id" : 0
+                           },
+                           "id" : 1,
+                           "name" : "CCSDS-TM-SPP"
+                        }
+                     }
+                  ],
+                  "id" : 3
+               }
+            ]
+        }
+        peers = peers_database['sle-users']
         for peer in peers:
             remote_peer = {str(peer['INITIATOR_ID']):
                                {

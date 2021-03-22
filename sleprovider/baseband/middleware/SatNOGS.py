@@ -3,43 +3,28 @@ import os
 import json
 import datetime as dt
 import requests
+import zmq
+import time
+import binascii
+
 from twisted.internet import reactor, protocol
 from twisted.internet.task import LoopingCall
 from slecommon.frames import SpacePacket, TelemetryTransferFrame, ax25_csp_to_spp
 from bitstring import BitArray
 from collections import OrderedDict
 
-SLE_PROVIDER_STARTUP_DELAY = int(os.getenv('SLE_PROVIDER_STARTUP_DELAY', 10))
-SLE_PROVIDER_POLLING_DELAY = int(os.getenv('SLE_PROVIDER_POLLING_DELAY', 10))
-
-
-class SatNOGSNetwork(object):
-    def __init__(self, config):
-        self.url = config['default']['NETWORK_API_URL']
-        self.key = config['default']['NETWORK_API_KEY']
-        self.params = config['default']['NETWORK_PARAMS']
-        self.header = self._get_header()
-
-    def _get_header(self):
-        token = self.key
-        return {'Authorization': 'Token ' + token}
-
-    def get_observations(self):
-        return requests.get(self.url, headers=self.header, params=self.params)
-
-    def get_observation(self, observation_id):
-        return requests.get(self.url, params={"id": observation_id})
-
+ZEROMQ_SUB_URI = str(os.getenv('ZEROMQ_SUB_URI', "tcp://127.0.0.1:5560"))
+ZEROMQ_SOCKET_RCVTIMEO = int(os.getenv('ZEROMQ_SOCKET_RCVTIMEO', "10"))
 
 class JsonClient(protocol.Protocol):
 
     def connectionMade(self):
         try:
-            print("Connection to the SLE provider successful")
+            logger.info("Connection to the SLE provider successful")
             self._rem = ''
             self.factory.container.users.append(self)
         except Exception as e:
-            print("Not able to connect to the SLE provider: {}".format(e))
+            logger.info("Not able to connect to the SLE provider: {}".format(e))
             self.disconnect()
 
     def connectionLost(self, reason):
@@ -50,7 +35,7 @@ class JsonClient(protocol.Protocol):
             data = (self._rem + data.decode()).encode()
             self._rem = ''
             pdu = json.loads(data)
-            print("The SLE server said: {}".format(pdu))
+            logger.info("The SLE server said: {}".format(pdu))
             self._pdu_handler(pdu)
         except json.JSONDecodeError:
             buffer = data.decode()
@@ -74,12 +59,8 @@ class JsonClient(protocol.Protocol):
         if 'command' in pdu:
             if pdu['command'] == 'start-telemetry':
                 observation_id = pdu['args'][0].split('=')[1]
-                self.factory.container.cfg['default']['NETWORK_PARAMS']['satellite__norad_cat_id'] = observation_id
-                self.factory.container.observation_data = \
-                    self.factory.container.satnogs.get_observation(observation_id).json()
-                self.factory.container.observation_count = \
-                    len(self.factory.container.observation_data[0]['demoddata'])
-                self.factory.container.antenna_id = self.factory.container.observation_data[0]['ground_station']
+                self.factory.container.observation_id = observation_id
+                self.factory.container.stopped = False
 
                 if pdu['args'].__len__() > 1:
                     self.wrapper = dict()
@@ -103,17 +84,10 @@ class JsonClient(protocol.Protocol):
                     self.wrapper = None
                 logger.info("Wrapper used: {}".format(self.wrapper))
 
-                if dt.datetime.fromisoformat(self.factory.container.observation_data[0]['end'][:-1]) < dt.datetime.utcnow():
-                    self.factory.container.past_observation = 'TRUE'
-                    self.factory.container.start_timer = \
-                        reactor.callLater(SLE_PROVIDER_STARTUP_DELAY, self.factory.container.send_message)
-                else:
-                    self.factory.container.past_observation = 'FALSE'
-                    self.factory.container.start_timer = \
-                        reactor.callLater(SLE_PROVIDER_STARTUP_DELAY, self.factory.container.looping_call)
+                self.factory.container.start_timer = \
+                    reactor.callInThread(self.factory.container.subscribe)
             elif pdu['command'] == 'stop-telemetry':
-                if self.factory.container.past_observation == 'FALSE':
-                    self.factory.container.looping_send_message_call.stop()
+                self.factory.container.stopped = True
 
     def send_message(self, data, frame_quality, earth_receive_time):
         if self.wrapper is None:
@@ -195,18 +169,21 @@ class JsonClient(protocol.Protocol):
         self.transport.write(json.dumps(msg).encode())
 
     def disconnect(self):
-        print("SLE server disconnecting!")
+        logger.info("SLE server disconnecting!")
         self.transport.loseConnection()
 
 
 class JsonClientFactory(protocol.ClientFactory):
 
     def clientConnectionFailed(self, connector, reason):
-        print("SLE server connection failed - goodbye!")
+        logger.info("SLE server connection failed - goodbye!")
         reactor.stop()
 
     def clientConnectionLost(self, connector, reason):
-        print("Connection to the SLE server lost!")
+        logger.info(reason)
+        logger.info("Connection to the SLE server lost!")
+        logger.info("Trying to reconnect...")
+        connector.connect()
 
     def buildProtocol(self, addr):
         p = JsonClient()
@@ -220,67 +197,45 @@ class SatNOGSMiddleware:
         f = JsonClientFactory()
         f.container = self
         self.antenna_id = ''
-        self.past_observation = 'FALSE'
-        self.observation_data = []
-        self.observation_count = 0
+        self.stopped = True
+        self.context = zmq.Context()
         self.print_frames = print_frames
-        self.cfg = \
-            {
-                "default":
-                    {
-                    "NETWORK_API_URL": str(os.getenv('SATNOGS_NETWORK_API_EXTERNAL')) + '/observations/',
-                    "NETWORK_API_KEY": "",
-                    "NETWORK_PARAMS": {"satellite__norad_cat_id": 0},
-                    "DB_API_URL": "https://db.satnogs.org/api/telemetry",
-                    "DB_API_KEY": ""
-                    }
-            }
-        self.satnogs = SatNOGSNetwork(self.cfg)
         self.users = []
         self.connectors = {}
+        self.frame_counter = 0
         self.connectors.update({'jsonClient': reactor.connectTCP(host_sle,
                                                                  port_sle,
                                                                  f)})
 
-    def send_message(self):
-        if self.past_observation == 'TRUE':
-            for data in self.observation_data[0]['demoddata']:
-                time = data['payload_demod'].split('_')
-                if len(time) == 5:
-                    time_rem = time[4]
-                else:
-                    time_rem = '0'
-                time = ''.join(reversed(''.join(reversed(time[3])).replace('-', ':', 2)))
-                time = str(dt.datetime.fromisoformat(time))
-                time = time + '.' + time_rem
-                self.users[0].send_message(requests.get(data['payload_demod']).content, 'good', time)
-        else:
-            self.observation_data = \
-                self.satnogs.get_observation(self.cfg['default']['NETWORK_PARAMS']['satellite__norad_cat_id']).json()
-            if self.observation_count < len(self.observation_data[0]['demoddata']):
-                for data in self.observation_data[0]['demoddata'][self.observation_count:]:
-                    time = data['payload_demod'].split('_')
-                    if len(time) == 5:
-                        time_rem = time[4]
-                    else:
-                        time_rem = '0'
-                    time = ''.join(reversed(''.join(reversed(time[3])).replace('-', ':', 2)))
-                    time = str(dt.datetime.fromisoformat(time))
-                    time = time + '.' + time_rem
-                    self.users[0].send_message(requests.get(data['payload_demod']).content, 'good', time)
-                self.observation_count = len(self.observation_data[0]['demoddata'])
-
-    def looping_call(self):
-        if self.past_observation == 'FALSE':
-            self.looping_send_message_call = LoopingCall(self.send_message)
-            self.looping_send_message_call.start(SLE_PROVIDER_POLLING_DELAY)
-        else:
-            self.send_message()
+    def subscribe(self):
+        self.subscriber = self.context.socket(zmq.SUB)
+        self.subscriber.setsockopt(zmq.RCVTIMEO, ZEROMQ_SOCKET_RCVTIMEO)
+        logger.info('Subscriber connects to %s' % (ZEROMQ_SUB_URI))
+        self.subscriber.connect(ZEROMQ_SUB_URI)
+        logger.info('Subscriber subscribes to data publisher')
+        self.subscriber.setsockopt(zmq.SUBSCRIBE, b'')
+        while True:
+            try:
+                [norad_id, timestamp, frame, station, obs_id, station_id] = self.subscriber.recv_multipart()
+                if self.observation_id == obs_id.decode("utf-8"):
+                    frame_time = timestamp.decode("utf-8")[:23].replace('T',' ')
+                    frame = binascii.unhexlify(frame)
+                    self.antenna_id = station_id.decode("utf-8")
+                    self.users[0].send_message(frame, 'good', frame_time)
+                    self.frame_counter += 1
+                    logger.info('Frames sent: ' + str(self.frame_counter))
+            except zmq.ZMQError as error:
+                pass
+            if self.stopped:
+                logger.info('Subscriber unsubscribes from data publisher')
+                logger.info('Subscriber close connection to %s' % (ZEROMQ_SUB_URI))
+                self.subscriber.close()
+                break
 
     def start_reactor(self):
-        print("SatNOGS middleware is now running!")
+        logger.info("SatNOGS middleware is now running!")
         if self.print_frames:
-            print("Print of frames enabled")
+            logger.info("Print of frames enabled")
         reactor.run()
 
 
