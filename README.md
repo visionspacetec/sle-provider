@@ -1,6 +1,10 @@
-<a href="http://www.visionspace.com">
-   <img src="https://www.visionspace.com/img/VISIONSPACE_HZ_BLACK_HR.png" alt="visionspace logo" title="visionspace_cicd" align="right" height="25px" />
-</a>
+> **⚠️ Deprecation Notice**
+>
+> This repository is no longer maintained.
+> The SLE Provider project has moved to a new home on GitLab:
+> 👉 [https://gitlab.com/visionspace/oss/sle/sle-provider](https://gitlab.com/visionspace/oss/sle/sle-provider)
+>
+> Please refer to the new repository for the latest updates, development, and issues.
 
 # sle-provider
 
